@@ -1,4 +1,4 @@
-# ⚽ 竞彩半全场「多维变式 & 人造单关」实战配资计算器 (HT/FT Calculator)
+# ⚽ 竞彩半全场实战配资计算器 (HT/FT Calculator)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/)
@@ -130,11 +130,3 @@ ht-ft-calculator/
 1. 本项目为开源数字策略研究工具，**仅供编程学习交流与数学概率娱乐研判**，严禁用于任何商业用途或非法博彩活动；
 2. 彩票投注存在固有风险，竞彩所有数据与玩法规则请以中国体育彩票官方发行机构发布的公告为准；
 3. 请广大购彩者依法合规、保持理性、量力而行。
-
----
-
-## 👨‍💻 作者与鸣谢
-
-- **作者**：大胡 ([@dahu](https://github.com/))
-- **设计风格**：灵感源自 Apple 极简科技美学与 Glassmorphism 深色毛玻璃规范。
-- **协议**：遵循 [MIT License](./LICENSE) 开源协议。
