@@ -3,7 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/)
 [![Pure Frontend](https://img.shields.io/badge/Stack-Pure%20HTML%20%2B%20Tailwind-blue.svg)](./index.html)
-[![Desktop Ready](https://img.shields.io/badge/Desktop-PyWebView%20%2F%20EXE-orange.svg)](./app.py)
 
 > **基于荷兰式配资（Dutching）数学原理与竞彩半全场赔率矩阵的策略建模与实战配资工具。**  
 > 帮助购彩者在未开胜平负单关的赛事中，科学、精算地拆单合成“人造单关”，或构建 6 组赛果防守策略，实现风险最小化与收益平衡。
@@ -42,10 +41,12 @@
   - 支持按“最适合拆单（折损率最低）”智能降序排列；
   - 提供“不显示胜平负已开单关的比赛”筛选，专注挖掘无单关赛事的价值；
   - 支持一键将整场比赛所有盘口参数载入上方工作台。
-- 💻 **零依赖 · 多端开箱即用**：
+- 💻 **零构建 · 多端开箱即用**：
   - **浏览器**：直接双击 `index.html` 即可运行；
-  - **静态托管**：可一键部署至 GitHub Pages、Vercel、Cloudflare Pages；
-  - **桌面端**：提供 Python 启动脚本，支持一键打包为无依赖的 Windows `.exe` 单文件。
+  - **静态托管**：可一键部署至 GitHub Pages、Vercel、Cloudflare Pages（已提供在线版）；
+  - **移动端**：竖屏布局优化，手机浏览器即开即用。
+
+> 说明：本项目为纯前端应用，无构建步骤、无后端依赖；运行需联网加载 Tailwind CDN 并直连竞彩网在售数据接口。
 
 ---
 
@@ -102,6 +103,13 @@ npm run serve
 ```text
 ht-ft-calculator/
 ├── index.html              # 核心应用：纯前端单文件版本 (HTML5 + Tailwind CDN + 原生 JS，直连竞彩网 API)
+├── css/
+│   └── style.css           # 自定义样式（覆盖/补充 Tailwind）
+├── js/
+│   ├── calculator.js       # 配资核心算法（Dutching 配额 / 合成 SP / 折损率）
+│   ├── app.js              # 界面交互与工作台逻辑
+│   ├── data.js             # 内置离线在售比赛快照（32场，断网保底）
+│   └── api.js              # 竞彩网在售赛事与赔率接口封装
 ├── package.json            # npm 本地预览脚本与元数据
 ├── LICENSE                 # MIT 开源授权协议
 ├── .gitignore              # Git 忽略配置
