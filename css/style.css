@@ -1,0 +1,105 @@
+/* ==========================================================================
+   竞彩半全场配资计算器 - 核心与响应式样式表
+   ========================================================================== */
+
+/* 全局深色底色与选中文本 */
+body {
+    background-color: #0b0f17;
+    color: #e2e8f0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 玻璃拟态卡片质感 */
+.glass-card {
+    background: rgba(18, 24, 38, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-active {
+    background: rgba(26, 36, 56, 0.85);
+    border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.2);
+}
+
+/* 九宫格单元格过渡与微发光 */
+.matrix-cell {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    user-select: none;
+}
+
+.matrix-cell:hover {
+    transform: translateY(-1px);
+}
+
+.matrix-cell.selected {
+    border-color: rgba(16, 185, 129, 0.6) !important;
+    background: rgba(16, 185, 129, 0.14) !important;
+    box-shadow: 0 0 16px -2px rgba(16, 185, 129, 0.25);
+}
+
+/* 自定义纤细滚动条 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0b0f17;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
+
+/* 横向胶囊滚动条隐藏但保留滚动能力 */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* 移动端专属卡片动效 */
+.mobile-match-card {
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-match-card:active {
+    transform: scale(0.99);
+}
+
+/* 移动端抽屉式弹窗动画 (Bottom Sheet) */
+@media (max-width: 768px) {
+    .modal-sheet-container {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+
+    .modal-sheet-content {
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        max-height: 88vh !important;
+        width: 100% !important;
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}
