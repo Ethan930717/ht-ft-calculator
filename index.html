@@ -70,11 +70,11 @@
 
             <!-- 数据源状态与操作按钮组 -->
             <div class="flex items-center space-x-2 sm:space-x-3">
-                <div
-                    class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <div id="dataSourceBox"
+                    class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs ds-box-loading">
+                    <span id="dataSourceDot" class="ds-dot-loading"></span>
                     <span class="text-slate-400 hidden xs:inline">数据源:</span>
-                    <span id="dataSourceBadge" class="text-slate-200 font-medium font-mono text-[11px] sm:text-xs">竞彩在售 (32场)</span>
+                    <span id="dataSourceBadge" class="ds-text-loading font-medium font-mono text-[11px] sm:text-xs">加载中…</span>
                 </div>
                 <button id="btnRefresh" onclick="refreshMatchData()"
                     class="flex items-center space-x-1 sm:space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition text-xs font-semibold active:scale-95 whitespace-nowrap">
@@ -113,6 +113,39 @@
 
     <!-- 主视口容器 -->
     <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
+
+        <!-- 数据源降级警告横幅：竞彩网拉取失败、降级为内置测试数据时显示（默认隐藏） -->
+        <div id="dataFallbackBanner" class="hidden" role="alert">
+            <div class="degrade-banner">
+                <svg class="w-5 h-5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <div class="flex-1 min-w-0">
+                    <p class="text-amber-300 font-bold text-xs sm:text-sm leading-snug">
+                        竞彩网数据获取失败，当前为内置测试数据
+                    </p>
+                    <p class="text-amber-200/70 text-[11px] sm:text-xs mt-0.5">
+                        页面展示 js/data.js 内置 32 场快照，非实时行情；可点击「重新拉取」恢复官方实时数据。
+                    </p>
+                </div>
+                <button onclick="refreshMatchData()"
+                    class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 text-xs font-semibold transition active:scale-95 whitespace-nowrap">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                    <span>重新拉取</span>
+                </button>
+                <button onclick="hideDataFallbackBanner()" aria-label="关闭提示"
+                    class="shrink-0 p-1.5 rounded-lg text-amber-200/60 hover:text-amber-100 hover:bg-amber-500/20 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
 
         <!-- 核心模块一：实战出票测算工作台 -->
         <section id="calculatorSection"
@@ -222,8 +255,9 @@
                 </div>
                 <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                     <label class="text-slate-500 block mb-1 text-[11px]">官方胜平负SP (胜/平/负)</label>
-                    <input type="text" id="inputSpHDA" value="8.75 / 6.00 / 1.18" placeholder="8.75 / 6.00 / 1.18"
-                        class="w-full bg-transparent font-mono font-bold text-amber-400 focus:outline-none text-xs sm:text-sm">
+                    <input type="text" id="inputSpHDA" value="8.75 / 6.00 / 1.18" placeholder="8.75 / 6.00 / 1.18" readonly
+                        class="w-full bg-transparent font-mono font-bold text-amber-400 focus:outline-none text-xs sm:text-sm cursor-default">
+                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">当前版本该值用于对照参考（计算以半全场赔率为准）</p>
                 </div>
             </div>
 
@@ -434,8 +468,38 @@
 
                 <!-- 右侧方案出票与预期面板 (5列) -->
                 <div class="lg:col-span-5 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold text-white">配资方案与预期回报</span>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span class="text-sm font-bold text-white">配资方案与预期回报</span>
+                            <!-- P3: 收藏方案（localStorage）+ 我的方案入口 -->
+                            <button onclick="saveCurrentPlan()" id="btnSavePlan"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition text-[11px] font-semibold active:scale-95 whitespace-nowrap"
+                                title="把当前测算台方案收藏到本地浏览器 (htft_saved_plans)">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                </svg>
+                                <span>收藏方案</span>
+                            </button>
+                            <button onclick="togglePlansModal()" id="btnMyPlans"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 transition text-[11px] font-semibold active:scale-95 whitespace-nowrap"
+                                title="查看本地已收藏方案，支持一键载入测算台或删除">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                </svg>
+                                <span>我的方案</span>
+                            </button>
+                            <button onclick="toggleShareModal()" id="btnOpenShare"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition text-[11px] font-semibold active:scale-95 whitespace-nowrap"
+                                title="生成文字清单或竖版分享卡">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                </svg>
+                                <span>分享方案</span>
+                            </button>
+                        </div>
                         <span class="text-[11px] text-slate-400" id="resProbSum">隐含概率: 11.6%</span>
                     </div>
 
@@ -475,6 +539,14 @@
                             </div>
                         </div>
 
+                        <!-- 预算越界警示条：实际出票总额超过设定预算时由 calculate() 显示 -->
+                        <div id="budgetOverWarn" class="hidden px-3 py-2.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2" role="alert">
+                            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <span id="budgetOverWarnText" class="font-semibold">实际投注额超出设定预算</span>
+                        </div>
+
                         <!-- 汇总出票金额与盈亏预期 -->
                         <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
                             <div>
@@ -494,6 +566,35 @@
 
         <!-- 核心模块二：在售比赛智能挖掘明细列表 -->
         <section id="matchListSection" class="glass-card rounded-2xl p-4 sm:p-6 lg:p-7 space-y-4 transition-all duration-300">
+
+            <!-- 🔥 最优拆单推荐：自动从「未开胜平负单关」场次中挑出最划算拆法 Top 3 (一键应用到测算台) -->
+            <div id="optimalRecBox"
+                class="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.07] via-slate-900/40 to-rose-500/[0.06] p-4 sm:p-5 space-y-3 relative overflow-hidden">
+                <!-- 顶部氛围光晕（纯装饰） -->
+                <div class="pointer-events-none absolute -top-10 -left-10 w-36 h-36 rounded-full bg-amber-500/10 blur-3xl"></div>
+                <div class="pointer-events-none absolute -bottom-12 -right-8 w-40 h-40 rounded-full bg-rose-500/10 blur-3xl"></div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 relative">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-lg sm:text-xl leading-none">🔥</span>
+                        <div>
+                            <h3 class="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
+                                <span>最优拆单推荐</span>
+                                <span class="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap">大胡最爱 · 一键抄作业</span>
+                            </h3>
+                            <p class="text-[11px] text-slate-400 mt-0.5">自动从「未开胜平负单关」场次中，跨胜/平/负三向算出合成单关折损最优的拆法，点「一键应用」直达测算台</p>
+                        </div>
+                    </div>
+                    <span id="recBadgeCount"
+                        class="text-[11px] px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono font-bold whitespace-nowrap relative">Top 3</span>
+                </div>
+
+                <!-- 推荐卡片容器（JS 渲染） -->
+                <div id="optimalRecContainer" class="grid grid-cols-1 md:grid-cols-3 gap-3 relative">
+                    <!-- 由 app.js renderOptimalRecs() 动态渲染 -->
+                </div>
+            </div>
+
             <!-- 列表头部控制栏 -->
             <div class="flex flex-wrap items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-white/5">
                 <div class="flex items-center space-x-2.5 sm:space-x-3">
@@ -529,7 +630,7 @@
                     <!-- 过滤项：默认勾选不显示单关比赛 -->
                     <label
                         class="flex items-center space-x-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 cursor-pointer select-none hover:bg-emerald-500/20 transition whitespace-nowrap">
-                        <input type="checkbox" id="filterHideSingle" checked onchange="renderMatchList()"
+                        <input type="checkbox" id="filterHideSingle" checked
                             class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900">
                         <span class="font-semibold text-[11px] sm:text-xs">未开单关 (拆单优选)</span>
                     </label>
@@ -537,18 +638,29 @@
                     <!-- 排序规则下拉 -->
                     <div class="flex items-center space-x-1.5 whitespace-nowrap">
                         <span class="text-slate-400 hidden sm:inline">排序:</span>
-                        <select id="selectSort" onchange="renderMatchList()"
+                        <select id="selectSort"
                             class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-emerald-500 focus:outline-none text-[11px] sm:text-xs">
-                            <option value="shrinkage_asc">最适合拆单 (折损率低优先)</option>
+                            <option value="shrinkage_best">按折损率从优到劣 (默认)</option>
                             <option value="time_asc">开赛时间先后</option>
                             <option value="sp_asc">目标单关 SP 从低到高</option>
                             <option value="sp_desc">目标单关 SP 从高到低</option>
                         </select>
                     </div>
 
+                    <!-- P2-a 折损率筛选：全部 / 适合拆单 / 高性价比 -->
+                    <div class="flex items-center space-x-1.5 whitespace-nowrap">
+                        <span class="text-slate-400 hidden sm:inline">折损率:</span>
+                        <select id="selectShrinkFilter"
+                            class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-emerald-500 focus:outline-none text-[11px] sm:text-xs" title="按折损率档位快速筛选：适合拆单 = 折损率 ≥ -8%（排除红色折损较高）；高性价比 = 正溢价 / 接近 0">
+                            <option value="all">全部折损</option>
+                            <option value="fit">适合拆单 (≥-8%)</option>
+                            <option value="premium">高性价比 (正溢价)</option>
+                        </select>
+                    </div>
+
                     <!-- 快速搜索框 -->
                     <div class="relative flex-1 sm:flex-initial">
-                        <input type="text" id="inputSearch" placeholder="搜索球队/联赛..." oninput="renderMatchList()"
+                        <input type="text" id="inputSearch" placeholder="搜索球队/联赛..."
                             class="bg-slate-900 border border-slate-700 rounded-lg pl-7 pr-3 py-1.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none w-full sm:w-44 text-[11px] sm:text-xs">
                         <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -585,19 +697,23 @@
                 <!-- 由 JS 动态渲染移动端卡片 -->
             </div>
 
-            <!-- 底部折损率评级图例 -->
+            <!-- 底部折损率评级图例（P2-a 四档色阶：绿 / 浅绿 / 琥珀 / 红） -->
             <div class="flex flex-wrap items-center justify-between text-[11px] sm:text-xs text-slate-500 pt-2 gap-2">
-                <div class="flex items-center space-x-3 sm:space-x-4">
-                    <span class="flex items-center space-x-1.5">
+                <div class="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1.5">
+                    <span class="flex items-center space-x-1.5" title="正溢价：合成单关 SP ≥ 官方 SP，拆单性价比最高">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span>折损率 &gt; -5%：极佳拆单</span>
+                        <span>≥ 0：正溢价</span>
                     </span>
-                    <span class="flex items-center space-x-1.5">
+                    <span class="flex items-center space-x-1.5" title="浅绿：折损 0 ~ -3%，接近 0 性价比良好">
+                        <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+                        <span>0 ~ -3%：浅绿</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5" title="琥珀：折损 -3% ~ -8%，可接受范围">
                         <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        <span>-8% ~ -5%：可接受</span>
+                        <span>-3% ~ -8%：可接受</span>
                     </span>
-                    <span class="flex items-center space-x-1.5">
-                        <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+                    <span class="flex items-center space-x-1.5" title="红色：折损低于 -8%，折损较高，建议谨慎拆单">
+                        <span class="w-2 h-2 rounded-full bg-red-500"></span>
                         <span>&lt; -8%：折损较高</span>
                     </span>
                 </div>
@@ -666,6 +782,136 @@
         </div>
     </div>
 
+    <!-- 拆单方案分享弹窗：文字清单一键复制 + Canvas 竖版分享卡 PNG 下载 -->
+    <div id="shareModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl modal-sheet-content">
+            <!-- 移动端底部抽屉把手装饰条 -->
+            <div class="md:hidden flex justify-center pt-2.5 pb-1">
+                <div class="w-10 h-1 rounded-full bg-slate-700"></div>
+            </div>
+
+            <!-- 弹窗头 -->
+            <div class="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-sm font-bold">📤</span>
+                    <h3 class="text-base sm:text-lg font-bold text-white">拆单方案分享</h3>
+                </div>
+                <button onclick="toggleShareModal()" aria-label="关闭分享"
+                    class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 弹窗主体 -->
+            <div class="p-4 sm:p-6 space-y-4 text-xs sm:text-sm text-slate-300 max-h-[75vh] overflow-y-auto">
+
+                <!-- 无方案空态（默认隐藏，share.js 判定无勾选赛果时显示并隐藏下方两窗格） -->
+                <div id="shareEmptyMsg" class="hidden text-center py-10 text-slate-400 leading-relaxed">
+                    <div class="text-3xl mb-2">🈳</div>
+                    当前没有可分享的拆单方案<br>
+                    <span class="text-[11px] text-slate-500">请先在测算台勾选至少 1 项半全场赛果</span>
+                </div>
+
+                <!-- 文本分享窗格 -->
+                <div id="shareTextPane" class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-[11px]">📋</span>
+                            文字出票清单
+                        </span>
+                        <button id="btnCopyShareText" onclick="copyShareText()"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-white border border-cyan-500/30 transition text-[11px] font-bold active:scale-95">
+                            一键复制
+                        </button>
+                    </div>
+                    <pre id="shareTextPreview"
+                        class="share-text-preview whitespace-pre-wrap break-words bg-slate-950/80 border border-slate-800 rounded-xl p-3 font-mono text-[11px] sm:text-xs text-slate-300 leading-relaxed max-h-56 overflow-y-auto"></pre>
+                </div>
+
+                <!-- 图片分享窗格 -->
+                <div id="shareImgPane" class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-[11px]">🖼️</span>
+                            竖版分享卡
+                        </span>
+                        <a id="btnDownloadSharePng" download="htft-share-card.png"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-[11px] font-bold active:scale-95">
+                            ⬇️ 下载 PNG
+                        </a>
+                    </div>
+                    <div class="flex justify-center bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                        <canvas id="shareCanvas" width="750" height="1000"
+                            class="share-canvas w-full max-w-[340px] sm:max-w-[380px] h-auto rounded-lg shadow-lg shadow-black/40"></canvas>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">分享卡由本地 Canvas 生成（不上传任何数据），右键或点击「下载 PNG」保存后发群即可。</p>
+                </div>
+            </div>
+
+            <!-- 弹窗脚 -->
+            <div class="p-3 sm:p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between gap-2">
+                <span class="text-[11px] text-slate-500">仅供数学策略研究 · 理性购彩</span>
+                <button onclick="toggleShareModal()"
+                    class="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition active:scale-95">
+                    完成
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 我的方案弹窗：localStorage 收藏的测算台方案，支持载入 / 删除 -->
+    <div id="plansModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl modal-sheet-content">
+            <!-- 移动端底部抽屉把手装饰条 -->
+            <div class="md:hidden flex justify-center pt-2.5 pb-1">
+                <div class="w-10 h-1 rounded-full bg-slate-700"></div>
+            </div>
+
+            <!-- 弹窗头 -->
+            <div class="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-violet-500/20 text-violet-300 flex items-center justify-center text-sm font-bold">💾</span>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white">我的方案</h3>
+                        <p class="text-[11px] text-slate-500">本地浏览器收藏（最多 10 条）· 数据不上传</p>
+                    </div>
+                </div>
+                <button onclick="togglePlansModal()" aria-label="关闭我的方案"
+                    class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 弹窗主体 -->
+            <div class="p-4 sm:p-6 space-y-3 text-xs sm:text-sm text-slate-300 max-h-[70vh] overflow-y-auto">
+                <!-- 空态 -->
+                <div id="savedPlansEmpty" class="hidden text-center py-10 text-slate-400 leading-relaxed">
+                    <div class="text-3xl mb-2">🗂️</div>
+                    暂无已收藏方案<br>
+                    <span class="text-[11px] text-slate-500">在测算台勾选赛果并配好后，点击「收藏方案」即可存到本地</span>
+                </div>
+                <!-- 已收藏方案列表（JS 渲染） -->
+                <div id="savedPlansList" class="space-y-2">
+                    <!-- 由 storage.js renderPlansList() 动态渲染 -->
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">💡 收藏仅保存在当前浏览器 localStorage，换设备 / 清缓存会丢失；载入会把场次、勾选赛果、配资模式与预算一键恢复到测算台。</p>
+            </div>
+
+            <!-- 弹窗脚 -->
+            <div class="p-3 sm:p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between gap-2">
+                <span class="text-[11px] text-slate-500">仅供数学策略研究 · 理性购彩</span>
+                <button onclick="togglePlansModal()"
+                    class="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition active:scale-95">
+                    完成
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 底部版权与免责声明 -->
     <footer class="mt-auto border-t border-white/5 py-4 text-center text-xs text-slate-500 px-4">
         <p>本项目为开源数字策略研究工具，仅供数学概率交流与编程学习研判，严禁用于任何非法博彩活动。</p>
@@ -677,6 +923,8 @@
     <script src="js/calculator.js"></script>
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/share.js"></script>
+    <script src="js/storage.js"></script>
 </body>
 
 </html>

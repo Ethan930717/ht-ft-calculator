@@ -101,19 +101,22 @@ function setAllocationMode(mode) {
     const btnE = document.getElementById('allocBtnEqual');
 
     if (btnD && btnA && btnE) {
+        // 用 classList 只切换激活态配色，保留 HTML 里的响应式基础类（如 flex-1 sm:flex-initial），
+        // 避免 className= 整体覆盖导致窄屏配资模式按钮丢失等宽布局
         [btnD, btnA, btnE].forEach(b => {
-            b.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white whitespace-nowrap';
+            b.classList.remove('bg-emerald-500', 'text-white', 'shadow-sm');
+            b.classList.add('text-slate-400', 'hover:text-white');
         });
+        const activeBtn = mode === 'dutched' ? btnD : (mode === 'attack_defense' ? btnA : btnE);
+        if (activeBtn) {
+            activeBtn.classList.remove('text-slate-400', 'hover:text-white');
+            activeBtn.classList.add('bg-emerald-500', 'text-white', 'shadow-sm');
+        }
 
-        if (mode === 'dutched') {
-            btnD.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
-            document.getElementById('planModeHint').innerText = '当前：绝对等额对冲 (平滑保底)';
-        } else if (mode === 'attack_defense') {
-            btnA.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
-            document.getElementById('planModeHint').innerText = '当前：核心主攻 + 防守保本 (阶梯出票)';
-        } else if (mode === 'equal_units') {
-            btnE.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
-            document.getElementById('planModeHint').innerText = '当前：均注搏冷 (1:1等注数)';
+        const hintEl = document.getElementById('planModeHint');
+        if (hintEl) {
+            hintEl.innerText = mode === 'dutched' ? '当前：绝对等额对冲 (平滑保底)'
+                : (mode === 'attack_defense' ? '当前：核心主攻 + 防守保本 (阶梯出票)' : '当前：均注搏冷 (1:1等注数)');
         }
     }
     calculate();
@@ -154,8 +157,17 @@ function applyPreset(presetKey) {
     }
 
     // 同步勾选九宫格
+    syncOutcomeCheckboxes(preset.outcomes);
+
+    calculate();
+}
+
+// 将九宫格勾选同步为指定赛果 key 集合（更新 checkbox + 卡片选中态）
+// 供 applyPreset 与「收藏方案载入」(storage.js) 复用，保证单元格视觉与勾选态一致
+function syncOutcomeCheckboxes(selectedKeys) {
+    const set = new Set(selectedKeys || []);
     Object.keys(OUTCOMES_META).forEach(k => {
-        const isSelected = preset.outcomes.includes(k);
+        const isSelected = set.has(k);
         const chk = document.getElementById(`chk_${k}`);
         const cell = document.getElementById(`cell_${k}`);
         if (chk) chk.checked = isSelected;
@@ -171,8 +183,6 @@ function applyPreset(presetKey) {
             }
         }
     });
-
-    calculate();
 }
 
 // 点击九宫格单元格增删
@@ -224,6 +234,9 @@ function calculate() {
         if (planCards) {
             planCards.innerHTML = '<div class="py-6 text-center text-slate-500 text-xs">请勾选至少 1 项半全场赛果</div>';
         }
+        // 无勾选时同时隐藏预算越界警示（避免残留旧状态）
+        const warnEl = document.getElementById('budgetOverWarn');
+        if (warnEl) warnEl.classList.add('hidden');
         return;
     }
 
@@ -413,5 +426,20 @@ function calculate() {
         const minRoi = Math.min(...rois);
         const maxRoi = Math.max(...rois);
         roiSumEl.innerText = `${minRoi >= 0 ? '+' : ''}${minRoi.toFixed(1)}% ~ ${maxRoi >= 0 ? '+' : ''}${maxRoi.toFixed(1)}%`;
+    }
+
+    // 预算越界提示：仅做醒目警示，不改变上方配资算法的资金分配逻辑
+    const budgetWarn = document.getElementById('budgetOverWarn');
+    const budgetWarnText = document.getElementById('budgetOverWarnText');
+    if (budgetWarn) {
+        if (totalCost > budget) {
+            const over = totalCost - budget;
+            budgetWarn.classList.remove('hidden');
+            if (budgetWarnText) {
+                budgetWarnText.innerText = `实际投注额 ¥${totalCost} 超出设定预算 ¥${budget}，超支 ¥${over.toFixed(0)}`;
+            }
+        } else {
+            budgetWarn.classList.add('hidden');
+        }
     }
 }

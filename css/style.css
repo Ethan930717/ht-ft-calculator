@@ -103,3 +103,126 @@ body {
         }
     }
 }
+
+/* ==========================================================================
+   数据源状态徽标与降级警告横幅（琥珀警示风格，与整体深色玻璃拟态一致）
+   ========================================================================== */
+
+/* ---- 状态圆点：同一几何尺寸，按数据源状态着色 ---- */
+.ds-dot-loading,
+.ds-dot-live,
+.ds-dot-snapshot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.ds-dot-loading {
+    background-color: #fbbf24;
+    animation: ds-pulse 1.2s ease-in-out infinite;
+}
+
+.ds-dot-live {
+    background-color: #34d399;
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.55);
+}
+
+.ds-dot-snapshot {
+    background-color: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.55);
+}
+
+@keyframes ds-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* ---- 徽标文本配色 ---- */
+.ds-text-loading {
+    color: #cbd5e1;
+}
+
+.ds-text-live {
+    color: #6ee7b7;
+}
+
+.ds-text-snapshot {
+    color: #fcd34d;
+}
+
+/* ---- 徽标容器描边 / 底色（让状态更醒目，ID+类提升优先级避免被 CDN 样式覆盖） ---- */
+#dataSourceBox.ds-box-loading {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+#dataSourceBox.ds-box-live {
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+#dataSourceBox.ds-box-snapshot {
+    border-color: rgba(245, 158, 11, 0.55);
+    background-color: rgba(120, 53, 15, 0.18);
+}
+
+/* ---- 降级警告横幅 ---- */
+.degrade-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(180, 83, 9, 0.28), rgba(120, 53, 15, 0.14));
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    box-shadow: 0 6px 24px -10px rgba(245, 158, 11, 0.3);
+    animation: ds-banner-in 0.3s ease;
+}
+
+@keyframes ds-banner-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   🔥 最优拆单推荐卡片 & 📤 分享面板（第 3 轮新增）
+   ========================================================================== */
+
+/* 推荐卡片微动效：悬停轻抬升，保持玻璃拟态质感 */
+.rec-card {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rec-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(251, 191, 36, 0.35);
+    box-shadow: 0 8px 28px -12px rgba(245, 158, 11, 0.25);
+}
+
+/* 分享面板文字清单预览区：纤细滚动条与等宽字体对齐 */
+.share-text-preview {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+}
+
+.share-text-preview::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+/* 分享卡 Canvas 预览：暗色描边收拢，双击放大交给浏览器默认行为 */
+.share-canvas {
+    box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
