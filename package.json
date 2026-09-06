@@ -1,0 +1,21 @@
+{
+  "name": "ht-ft-calculator",
+  "version": "1.0.0",
+  "description": "竞彩半全场「多维变式 & 人造单关」实战配资计算器 (Dutching Synthetic Single Calculator)",
+  "main": "index.html",
+  "scripts": {
+    "serve": "npx serve .",
+    "dev": "npx serve .",
+    "build:exe": "pyinstaller -F -w -n HtFtCalculator --add-data index.html;. app.py"
+  },
+  "keywords": [
+    "sports-lottery",
+    "jingcai",
+    "dutched-betting",
+    "calculator",
+    "hafu",
+    "football-analytics"
+  ],
+  "author": "大胡 (Dahu)",
+  "license": "MIT"
+}

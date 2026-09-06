@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>竞彩半全场「多维变式 & 人造单关」实战配资计算器</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#10b981',
+                            600: '#059669',
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f17;
+            color: #e2e8f0;
+        }
+
+        .glass-card {
+            background: rgba(18, 24, 38, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card-active {
+            background: rgba(26, 36, 56, 0.85);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15);
+        }
+
+        .matrix-cell {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .matrix-cell:hover {
+            transform: translateY(-1px);
+        }
+
+        .matrix-cell.selected {
+            border-color: rgba(16, 185, 129, 0.6);
+            background: rgba(16, 185, 129, 0.12);
+            box-shadow: 0 0 12px -2px rgba(16, 185, 129, 0.2);
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0b0f17;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen antialiased flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-300">
+
+    <!-- 顶部状态导航栏 -->
+    <header class="sticky top-0 z-50 glass-card border-b border-white/10 bg-[#0b0f17]/90 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-base lg:text-lg font-bold text-white tracking-tight">竞彩半全场实战配资计算器</h1>
+                        <span class="px-2.5 py-0.5 text-[11px] font-semibold bg-amber-500/15 text-amber-300 rounded-full border border-amber-500/30 flex items-center gap-1 shadow-sm">
+                            <span>⭐</span>
+                            <span>Powered by 大胡，仅供娱乐，禁止商用</span>
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">支持全场胜平负 / 锁定半场平 / 主客不败全包 / 9宫格自由点选 · 实体店 2 元整数出票
+                    </p>
+                </div>
+            </div>
+
+            <!-- 数据源与操作 -->
+            <div class="flex items-center space-x-3">
+                <div
+                    class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-400">数据源:</span>
+                    <span id="dataSourceBadge" class="text-slate-200 font-medium font-mono">竞彩在售 (32场)</span>
+                </div>
+                <button id="btnRefresh" onclick="refreshMatchData()"
+                    class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition text-xs font-semibold active:scale-95 whitespace-nowrap">
+                    <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                    <span>刷新在售数据</span>
+                </button>
+                <button onclick="toggleExplainModal()"
+                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition text-xs flex items-center space-x-1 whitespace-nowrap">
+                    <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>策略与数理解读</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主视口容器 -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+        <!-- 核心模块一：实战出票测算工作台 -->
+        <section id="calculatorSection"
+            class="glass-card rounded-2xl p-5 lg:p-7 relative overflow-hidden transition-all duration-300">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-white/5">
+                <div class="flex items-center space-x-3">
+                    <span
+                        class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">模块
+                        1</span>
+                    <h2 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        <span>半全场变式配资测算台</span>
+                        <span id="currentLoadedMatchTag"
+                            class="text-xs font-normal px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">自定义输入</span>
+                    </h2>
+                </div>
+                <!-- 资金分配模式 (等额对冲 vs 主攻保本 vs 均注) -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-slate-400">资金分配模式:</span>
+                    <div class="inline-flex rounded-lg p-1 bg-slate-900/80 border border-slate-800">
+                        <button onclick="setAllocationMode('dutched')" id="allocBtnDutched"
+                            class="px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap">
+                            🛡️ 绝对等额对冲
+                        </button>
+                        <button onclick="setAllocationMode('attack_defense')" id="allocBtnAttack"
+                            class="px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white whitespace-nowrap">
+                            🎯 核心主攻 + 防守保本
+                        </button>
+                        <button onclick="setAllocationMode('equal_units')" id="allocBtnEqual"
+                            class="px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white whitespace-nowrap">
+                            🚀 均注搏冷 (1:1)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 策略快捷点选胶囊条 -->
+            <div class="mb-5 space-y-2.5 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span class="font-bold text-slate-300 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span>点击快捷点选变式策略:</span>
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap gap-2 text-xs">
+                    <!-- 全场赛果方向 (3项) -->
+                    <div
+                        class="flex items-center space-x-1.5 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80">
+                        <span class="text-[10px] text-slate-400 px-1 font-semibold">全场:</span>
+                        <button onclick="applyPreset('ft_home')" id="preset_ft_home"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-emerald-500 text-white whitespace-nowrap">全场主胜
+                            (3项)</button>
+                        <button onclick="applyPreset('ft_draw')" id="preset_ft_draw"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">全场平局
+                            (3项)</button>
+                        <button onclick="applyPreset('ft_away')" id="preset_ft_away"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">全场客胜
+                            (3项)</button>
+                    </div>
+
+                    <!-- 半场锁定方向 (3项) -->
+                    <div
+                        class="flex items-center space-x-1.5 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80">
+                        <span class="text-[10px] text-cyan-400 px-1 font-semibold">锁定半场:</span>
+                        <button onclick="applyPreset('ht_draw')" id="preset_ht_draw"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🔒
+                            锁定半场平 (3项)</button>
+                        <button onclick="applyPreset('ht_home')" id="preset_ht_home"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">锁定半场主领先
+                            (3项)</button>
+                        <button onclick="applyPreset('ht_away')" id="preset_ht_away"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">锁定半场客领先
+                            (3项)</button>
+                    </div>
+
+                    <!-- 风险最小化 / 不败全包 (6项) -->
+                    <div
+                        class="flex items-center space-x-1.5 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80">
+                        <span class="text-[10px] text-amber-400 px-1 font-semibold">风险最小化:</span>
+                        <button onclick="applyPreset('double_home_draw')" id="preset_double_home_draw"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🛡️
+                            主队不败 (胜+平 6项)</button>
+                        <button onclick="applyPreset('double_away_draw')" id="preset_double_away_draw"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🛡️
+                            客队不败 (平+负 6项)</button>
+                        <button onclick="applyPreset('double_decisive')" id="preset_double_decisive"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">⚔️
+                            决出胜负 (胜+负 6项)</button>
+                        <button onclick="applyPreset('double_ht_home_draw')" id="preset_double_ht_home_draw"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">主半场不败
+                            (6项)</button>
+                    </div>
+                </div>
+
+                <div id="strategyDescText" class="text-xs text-slate-400 pt-1 flex items-center gap-1.5">
+                    <span class="text-emerald-400 font-bold">当前策略说明:</span>
+                    <span>覆盖全场主队获胜的全部半场走势，主胜100%有且仅有1张中奖（物理守恒）</span>
+                </div>
+            </div>
+
+            <!-- 测算器双栏布局 -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 左栏：九宫格赔率矩阵与预算 (6 Cols) -->
+                <div class="lg:col-span-6 space-y-4">
+                    <!-- 比赛标识信息 -->
+                    <div class="grid grid-cols-4 gap-2 text-xs">
+                        <div>
+                            <label class="block text-slate-400 mb-1">场次</label>
+                            <input type="text" id="inputMatchNum" value="周日017" oninput="calculate()"
+                                class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono focus:border-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">主队</label>
+                            <input type="text" id="inputHomeTeam" value="法兰克福" oninput="calculate()"
+                                class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:border-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">客队</label>
+                            <input type="text" id="inputAwayTeam" value="奥格斯堡" oninput="calculate()"
+                                class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:border-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">胜平负SP (主/平/客)</label>
+                            <input type="text" id="inputSpHDA" value="1.75 / 3.60 / 4.02" placeholder="1.75"
+                                class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-1.5 text-amber-400 font-mono text-center focus:border-amber-500 focus:outline-none text-[11px]">
+                        </div>
+                    </div>
+
+                    <!-- 半全场 9 宫格完整输入矩阵 -->
+                    <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-bold text-slate-300">半全场 9 宫格赔率矩阵 (点选勾选参与配资的赛果)</span>
+                            <span class="text-emerald-400 font-mono font-semibold" id="selectedCountBadge">已选 3 项</span>
+                        </div>
+
+                        <!-- 3x3 矩阵表头 -->
+                        <div class="grid grid-cols-4 gap-2 text-[11px] font-semibold text-slate-400 text-center pb-1">
+                            <div>半场＼全场</div>
+                            <div class="text-emerald-400">全场主胜</div>
+                            <div class="text-blue-400">全场打平</div>
+                            <div class="text-purple-400">全场客胜</div>
+                        </div>
+
+                        <!-- 第 1 行：半场主胜 -->
+                        <div class="grid grid-cols-4 gap-2 items-center">
+                            <div
+                                class="text-[11px] font-bold text-emerald-400 text-center py-2 bg-slate-800/40 rounded-lg">
+                                半场主胜</div>
+                            <!-- HH -->
+                            <div id="cell_hh"
+                                class="matrix-cell selected p-2 rounded-lg border border-slate-700 bg-slate-800/60 cursor-pointer"
+                                onclick="toggleCell('hh', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-white">胜胜</span>
+                                    <input type="checkbox" id="chk_hh" checked
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_hh" value="2.80" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                            <!-- HD -->
+                            <div id="cell_hd"
+                                class="matrix-cell p-2 rounded-lg border border-slate-800 bg-slate-800/30 cursor-pointer"
+                                onclick="toggleCell('hd', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-slate-300">胜平</span>
+                                    <input type="checkbox" id="chk_hd"
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_hd" value="15.00" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                            <!-- HA -->
+                            <div id="cell_ha"
+                                class="matrix-cell p-2 rounded-lg border border-slate-800 bg-slate-800/30 cursor-pointer"
+                                onclick="toggleCell('ha', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-slate-300">胜负</span>
+                                    <input type="checkbox" id="chk_ha"
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_ha" value="35.00" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- 第 2 行：半场平局 -->
+                        <div class="grid grid-cols-4 gap-2 items-center">
+                            <div
+                                class="text-[11px] font-bold text-blue-400 text-center py-2 bg-slate-800/40 rounded-lg">
+                                半场打平</div>
+                            <!-- DH -->
+                            <div id="cell_dh"
+                                class="matrix-cell selected p-2 rounded-lg border border-slate-700 bg-slate-800/60 cursor-pointer"
+                                onclick="toggleCell('dh', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-white">平胜</span>
+                                    <input type="checkbox" id="chk_dh" checked
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_dh" value="5.25" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                            <!-- DD -->
+                            <div id="cell_dd"
+                                class="matrix-cell p-2 rounded-lg border border-slate-800 bg-slate-800/30 cursor-pointer"
+                                onclick="toggleCell('dd', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-slate-300">平平</span>
+                                    <input type="checkbox" id="chk_dd"
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_dd" value="6.00" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                            <!-- DA -->
+                            <div id="cell_da"
+                                class="matrix-cell p-2 rounded-lg border border-slate-800 bg-slate-800/30 cursor-pointer"
+                                onclick="toggleCell('da', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-slate-300">平负</span>
+                                    <input type="checkbox" id="chk_da"
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_da" value="9.50" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- 第 3 行：半场客胜 -->
+                        <div class="grid grid-cols-4 gap-2 items-center">
+                            <div
+                                class="text-[11px] font-bold text-purple-400 text-center py-2 bg-slate-800/40 rounded-lg">
+                                半场客胜</div>
+                            <!-- AH -->
+                            <div id="cell_ah"
+                                class="matrix-cell selected p-2 rounded-lg border border-slate-700 bg-slate-800/60 cursor-pointer"
+                                onclick="toggleCell('ah', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-white">负胜</span>
+                                    <input type="checkbox" id="chk_ah" checked
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_ah" value="20.00" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                            <!-- AD -->
+                            <div id="cell_ad"
+                                class="matrix-cell p-2 rounded-lg border border-slate-800 bg-slate-800/30 cursor-pointer"
+                                onclick="toggleCell('ad', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-slate-300">负平</span>
+                                    <input type="checkbox" id="chk_ad"
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_ad" value="15.00" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                            <!-- AA -->
+                            <div id="cell_aa"
+                                class="matrix-cell p-2 rounded-lg border border-slate-800 bg-slate-800/30 cursor-pointer"
+                                onclick="toggleCell('aa', event)">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-slate-300">负负</span>
+                                    <input type="checkbox" id="chk_aa"
+                                        class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700">
+                                </div>
+                                <input type="number" step="0.01" id="odds_aa" value="7.20" oninput="calculate()"
+                                    onclick="event.stopPropagation()"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono font-bold text-center text-xs focus:border-emerald-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 投注总预算 -->
+                    <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <label class="font-bold text-slate-300">投注总预算 (元)</label>
+                            <span class="text-slate-400">实体店每注 2 元</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg font-bold text-emerald-400 font-mono">¥</span>
+                            <input type="number" id="inputBudget" value="100" min="6" step="2" oninput="calculate()"
+                                class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white font-mono font-bold text-base focus:border-emerald-500 focus:outline-none">
+                            <div class="flex items-center space-x-1">
+                                <button onclick="setBudget(50)"
+                                    class="px-2 py-1 rounded-md text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition">¥50</button>
+                                <button onclick="setBudget(100)"
+                                    class="px-2 py-1 rounded-md text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition">¥100</button>
+                                <button onclick="setBudget(200)"
+                                    class="px-2 py-1 rounded-md text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition">¥200</button>
+                                <button onclick="setBudget(500)"
+                                    class="px-2 py-1 rounded-md text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition">¥500</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右栏：精算输出与 2元整数出票单 (6 Cols) -->
+                <div class="lg:col-span-6 flex flex-col justify-between space-y-4">
+                    <!-- 核心指标摘要看板 -->
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                            <div class="text-[11px] text-slate-400 mb-0.5">组合合成单关SP</div>
+                            <div class="text-xl font-bold font-mono text-emerald-400" id="resSynthSp">1.6733</div>
+                            <div class="text-[10px] text-slate-500 mt-0.5" id="resSynthDetail">等效单关赔率</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                            <div class="text-[11px] text-slate-400 mb-0.5">无损对冲研判</div>
+                            <div class="text-sm font-bold font-mono" id="resBreakEvenTag">
+                                <span class="text-emerald-400">可绝对正收益</span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 mt-0.5" id="resProbSum">隐含概率: 59.8%</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                            <div class="text-[11px] text-slate-400 mb-0.5">赛果覆盖类型</div>
+                            <div class="text-sm font-bold text-cyan-400" id="resCoverageType">物理守恒完备</div>
+                            <div class="text-[10px] text-slate-500 mt-0.5" id="resCoverageDetail">打出必中且仅中1张</div>
+                        </div>
+                    </div>
+
+                    <!-- 实体店 2 元整数注数出票方案卡 (核心交付物) -->
+                    <div
+                        class="p-4 rounded-xl bg-gradient-to-b from-slate-900/90 to-slate-900/60 border border-emerald-500/20 shadow-lg relative flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center space-x-2">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                    <h3 class="text-xs font-bold text-white tracking-wide uppercase">实体店 2元/注 整数出票实操方案
+                                    </h3>
+                                </div>
+                                <span class="text-[11px] text-slate-400" id="planModeHint">当前：绝对等额对冲</span>
+                            </div>
+
+                            <!-- 动态已选赛果列表容器 (最大高度限制可滚动) -->
+                            <div id="planCardsContainer" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                                <!-- 由 JS 根据勾选动态渲染 -->
+                            </div>
+                        </div>
+
+                        <!-- 汇总出票金额与盈亏预期 -->
+                        <div
+                            class="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+                            <div>
+                                <span>实际出票总计: </span>
+                                <strong class="text-emerald-400 font-mono text-base" id="planTotalCost">¥100</strong>
+                                <span class="text-slate-500 ml-1 font-mono">(共 <span id="planTotalUnits">50</span>
+                                    注)</span>
+                            </div>
+                            <div>
+                                <span>命中任一已选赛果盈亏: </span>
+                                <strong class="text-white font-mono text-sm" id="planRoiSummary">+60.0% ~
+                                    +68.0%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 核心模块二：在售比赛智能挖掘明细列表 -->
+        <section class="glass-card rounded-2xl p-5 lg:p-7 space-y-4">
+            <!-- 列表头部控制栏 -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5">
+                <div class="flex items-center space-x-3">
+                    <span
+                        class="px-2.5 py-1 text-xs font-bold rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">模块
+                        2</span>
+                    <div>
+                        <h2 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                            <span>在售比赛「拆单优选」排行榜</span>
+                            <span class="text-xs font-normal text-slate-400" id="matchListCountText">(共 32 场)</span>
+                        </h2>
+                    </div>
+                </div>
+
+                <!-- 筛选与控制器组 -->
+                <div class="flex flex-wrap items-center gap-3 text-xs">
+                    <!-- 拆单目标赛果切换 (主胜 / 平局 / 客胜) -->
+                    <div class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 p-1 rounded-lg text-xs">
+                        <span class="text-slate-400 pl-1.5 pr-1 text-[11px] font-semibold">拆单方向:</span>
+                        <button onclick="setListTargetOutcome('h')" id="targetBtn_h"
+                            class="px-2.5 py-1 rounded text-xs font-bold transition bg-emerald-500 text-white shadow-sm whitespace-nowrap">
+                            全场主胜
+                        </button>
+                        <button onclick="setListTargetOutcome('d')" id="targetBtn_d"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition text-slate-300 hover:text-white bg-slate-800/80 whitespace-nowrap">
+                            全场平局
+                        </button>
+                        <button onclick="setListTargetOutcome('a')" id="targetBtn_a"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition text-slate-300 hover:text-white bg-slate-800/80 whitespace-nowrap">
+                            全场客胜
+                        </button>
+                    </div>
+                    <!-- 核心过滤项：默认勾选不显示单关比赛 -->
+                    <label
+                        class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 cursor-pointer select-none hover:bg-emerald-500/20 transition whitespace-nowrap">
+                        <input type="checkbox" id="filterHideSingle" checked onchange="renderMatchList()"
+                            class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-4 h-4 bg-slate-900">
+                        <span class="font-semibold">不显示单关比赛 (仅看适合拆单场次)</span>
+                    </label>
+
+                    <!-- 排序规则下拉 -->
+                    <div class="flex items-center space-x-1.5 whitespace-nowrap">
+                        <span class="text-slate-400">排序:</span>
+                        <select id="selectSort" onchange="renderMatchList()"
+                            class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-emerald-500 focus:outline-none">
+                            <option value="shrinkage_asc">最适合拆单 (折损率最低优先)</option>
+                            <option value="time_asc">开赛时间先后</option>
+                            <option value="sp_asc">目标单关 SP 从低到高</option>
+                            <option value="sp_desc">目标单关 SP 从高到低</option>
+                        </select>
+                    </div>
+
+                    <!-- 快速搜索框 -->
+                    <div class="relative">
+                        <input type="text" id="inputSearch" placeholder="搜索球队/联赛..." oninput="renderMatchList()"
+                            class="bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none w-36 sm:w-48">
+                        <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 在售比赛表格视图 -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead
+                        class="bg-slate-900/90 text-slate-400 uppercase font-semibold border-b border-slate-800 whitespace-nowrap">
+                        <tr>
+                            <th class="py-3 px-3 w-10 text-center">排名</th>
+                            <th class="py-3 px-3">场次 / 联赛</th>
+                            <th class="py-3 px-3">对阵球队</th>
+                            <th class="py-3 px-3 text-center">开赛时间</th>
+                            <th class="py-3 px-3 text-center">胜平负单关</th>
+                            <th class="py-3 px-3 text-right font-mono" id="thTargetSp">官方主胜SP</th>
+                            <th class="py-3 px-3 text-center" id="thTargetCombo">半全场主胜 (胜胜 / 平胜 / 负胜)</th>
+                            <th class="py-3 px-3 text-right">合成单关SP</th>
+                            <th class="py-3 px-3 text-center">折损率 (优劣)</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap min-w-[100px]">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matchTableBody" class="divide-y divide-slate-800/60 font-sans">
+                        <!-- 由 JS 动态渲染 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 底部提示信息 -->
+            <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 pt-2 gap-2">
+                <div class="flex items-center space-x-4">
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span>折损率 &lt; -5%：极佳适合拆单</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span>-5% ~ -8%：良好候选</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                        <span>&gt; -8%：折损偏高慎选</span>
+                    </span>
+                </div>
+                <div>
+                    <span>💡 点击操作列的「⚡ 载入测算」可将该场比赛全部 9 项半全场赔率完整载入九宫格测算台</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 底部版权信息 -->
+    <footer class="border-t border-white/5 py-4 text-center text-xs text-slate-400 space-y-1">
+        <p class="font-semibold text-amber-300/90">Powerd by 大胡 · 仅供娱乐 · 禁止商用</p>
+    </footer>
+
+    <!-- 术语与原理弹窗 Modal -->
+    <div id="explainModal"
+        class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div
+            class="glass-card rounded-2xl max-w-2xl w-full p-6 space-y-5 border border-white/10 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleExplainModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+
+                        <div class="flex items-center space-x-3 pb-3 border-b border-slate-800">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">?</div>
+                <h3 class="text-base font-bold text-white">专业术语通俗解读与多变式配资原理</h3>
+            </div>
+
+            <!-- 问题 1: 荷兰式与折损率 -->
+            <div class="space-y-2">
+                <h4 class="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span>1. 什么是“荷兰式配资”（Dutching）与“合成折损率”？</span>
+                </h4>
+                <div class="text-xs text-slate-300 space-y-2 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                    <p><strong>【荷兰式配资（Dutching）】：</strong>源自对冲投资与博彩数学的经典专业术语。其定义是：<strong>面对多个互斥选项（如半全场的 3 个走势），按照各个选项赔率的倒数比例精确分配本金，使得无论哪个选项打出，最终拿到手的净兑奖金额完全相等</strong>。</p>
+                    <p><strong>【合成折损率的意思是】：</strong>半全场包含 9 个细分赛果，相比胜平负（3个选项）离散度更高，体彩中心在设定半全场赔率时需要预留更高的风控安全边际。因此，用 3 个半全场组合拼出来的“人工单关”等效赔率，相比直接开出的胜平负 SP 会略有天然折减（通常缩水 2%~8% 不等），这个差额就是<strong>“合成折损率”</strong>。</p>
+                    <p class="text-emerald-300"><strong>【折损率优劣判断与排序逻辑】：</strong>折损率通常为负值。<strong>负值越小（如 -1.48% 优于 -8.50%），说明该场比赛半全场官方赔率给得越足、抽水折损极小、拆单性价比极高</strong>！因此在售列表默认按折损率负得最少从优到劣排序。</p>
+                    <p class="text-cyan-300"><strong>【为什么强烈建议拆单？】：</strong>许多精彩赛事未开胜平负单关，彩民为了买球只能被迫抓一场 1.20 稳胆打“2 串 1”。一旦稳胆爆冷，全单尽墨！用半全场拆单单关，虽然赔率微弱折损，但<strong>绝对免除了第二场比赛爆冷的不可控风险</strong>，资金 100% 只取决于本场发挥！</p>
+                </div>
+            </div>
+
+            <!-- 问题 2: 三种赛果折损率与单关SP -->
+            <div class="space-y-2">
+                <h4 class="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>2. 主胜、平局、客胜三种赛果的折损率是一样的吗？单关SP怎么看？</span>
+                </h4>
+                <div class="text-xs text-slate-300 space-y-2 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                    <p><strong>答：完全不一样！三种赛果的折损率各不相同！</strong></p>
+                    <p>因为每场比赛官方在胜平负以及 9 项半全场上的开赔重心和受注风险不同：</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1 text-slate-200">
+                        <li><strong>全场主胜方向</strong>：全包【胜胜、平胜、负胜】3项，对应官方主胜 SP 计算折损；</li>
+                        <li><strong>全场平局方向</strong>：全包【胜平、平平、负平】3项，对应官方平局 SP 计算折损；</li>
+                        <li><strong>全场客胜方向</strong>：全包【胜负、平负、负负】3项，对应官方客胜 SP 计算折损。</li>
+                    </ul>
+                    <p class="text-amber-300">我们在在售比赛列表顶部专门新增了<strong>【拆单方向：全场主胜 / 全场平局 / 全场客胜】</strong>一键切换功能！无论想博主胜稳胆、平局高赔还是冷门客胜，点击即可查看该方向全量比赛的官方单关 SP、半全场三项组合、合成 SP 与对应折损率排行榜！</p>
+                </div>
+            </div>
+
+            <!-- 问题 3: 物理守恒100% -->
+            <div class="space-y-2">
+                <h4 class="text-sm font-bold text-cyan-400 flex items-center gap-1.5">
+                    <span>3. “赛果覆盖率（物理守恒）100.0%”是什么意思？</span>
+                </h4>
+                <div class="text-xs text-slate-300 space-y-1.5 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                    <p><strong>答：指的是在客观物理世界中，对特定全场赛果的半场走势完全穷尽、没有任何逻辑遗漏。</strong></p>
+                    <p>以“全场主胜”为例：足球比赛哨响若主队取胜，上半场结束时的比分状态在逻辑空间中<strong>有且仅有 3 种可能</strong>：</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1 text-slate-200">
+                        <li>上半场主队领先，最终主胜 ➔ <strong>【胜胜】</strong>（历史统计约 60.0%）</li>
+                        <li>上半场双方战平，最终主胜 ➔ <strong>【平胜】</strong>（历史统计约 33.8%）</li>
+                        <li>上半场客队领先，最终主胜逆转 ➔ <strong>【负胜】</strong>（历史统计约 6.2%）</li>
+                    </ul>
+                    <p><strong>绝无第四种上半场状态！</strong>只要把这 3 张半全场全部买下，只要主队最终赢球，<strong>必定且绝对有且仅有 1 张彩票中奖（覆盖率 100.0%）</strong>。同理，全场平局（胜平/平平/负平）也是 100% 完备覆盖！</p>
+                </div>
+            </div>
+
+            <!-- 问题 4: 6项不败策略 -->
+            <div class="space-y-2">
+                <h4 class="text-sm font-bold text-purple-400 flex items-center gap-1.5">
+                    <span>4. 像“主队不败”包 6 个赛果，能否算出一种不亏钱的策略？</span>
+                </h4>
+                <div class="text-xs text-slate-300 space-y-1.5 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                    <p><strong>答：完全可以！实战中有两种策略：</strong></p>
+                    <p><strong>策略一【绝对等额对冲】：</strong>只要所选 6 个赛果的合成赔率 ≥ 1.00，采用荷兰式对冲分配，<strong>打出 6 种赛果任意一种，均能锁定绝对净赚保底收益</strong>！</p>
+                    <p><strong>策略二【核心主攻 + 防守保本】：</strong>若合成赔率略小于 1.00，可将 3 个次要防守项（如胜平/平平/负平）的注数配置为<strong>刚好兑奖保回总本金</strong>。由于平局赔率通常高达 6~15 倍，仅需极少本金即可完成防守；剩余 80% 大部队主力重注重投核心主攻项！真正做到“打平不亏钱保本退回，打出主胜暴赚丰厚回报”！</p>
+                </div>
+            </div>
+
+            <div class="pt-2 text-right">
+                <button onclick="toggleExplainModal()"
+                    class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 内嵌数据与前端业务逻辑 -->
+    <script>
+        // 初始内嵌离线在售比赛数据快照 (32 场)
+        let matchesData = [{ "match_id": "2041308", "match_num_str": "周日013", "league_name": "西班牙甲级联赛", "home_team": "巴伦西亚", "away_team": "巴塞罗那", "match_date": "2026-09-06", "match_time": "22:15:00", "sp_h": 8.75, "sp_d": 6.0, "sp_a": 1.18, "hafu_hh": 17.5, "hafu_dh": 23.0, "hafu_ah": 65.0, "hafu_hd": 23.0, "hafu_dd": 11.5, "hafu_ad": 23.0, "hafu_ha": 21.0, "hafu_da": 4.35, "hafu_aa": 1.57, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 8.6203, "shrinkage": -1.48, "is_suitable": true }, { "match_id": "2041312", "match_num_str": "周日017", "league_name": "德国甲级联赛", "home_team": "法兰克福", "away_team": "奥格斯堡", "match_date": "2026-09-06", "match_time": "23:30:00", "sp_h": 1.75, "sp_d": 3.77, "sp_a": 3.41, "hafu_hh": 2.8, "hafu_dh": 5.25, "hafu_ah": 20.0, "hafu_hd": 14.0, "hafu_dd": 7.0, "hafu_ad": 14.0, "hafu_ha": 27.0, "hafu_da": 8.5, "hafu_aa": 6.0, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.6733, "shrinkage": -4.38, "is_suitable": true }, { "match_id": "2041326", "match_num_str": "周一007", "league_name": "葡萄牙超级联赛", "home_team": "埃斯托里尔", "away_team": "阿罗卡", "match_date": "2026-09-08", "match_time": "03:15:00", "sp_h": 2.19, "sp_d": 3.25, "sp_a": 2.75, "hafu_hh": 3.75, "hafu_dh": 5.7, "hafu_ah": 26.0, "hafu_hd": 15.0, "hafu_dd": 5.5, "hafu_ad": 15.0, "hafu_ha": 28.0, "hafu_da": 6.5, "hafu_aa": 4.6, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.0809, "shrinkage": -4.98, "is_suitable": true }, { "match_id": "2041310", "match_num_str": "周日015", "league_name": "挪威超级联赛", "home_team": "莫尔德", "away_team": "奥斯陆KFUM", "match_date": "2026-09-06", "match_time": "23:00:00", "sp_h": 1.22, "sp_d": 5.7, "sp_a": 7.5, "hafu_hh": 1.7, "hafu_dh": 4.5, "hafu_ah": 19.0, "hafu_hd": 20.0, "hafu_dd": 10.5, "hafu_ad": 20.0, "hafu_ha": 60.0, "hafu_da": 19.0, "hafu_aa": 13.0, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.1586, "shrinkage": -5.03, "is_suitable": true }, { "match_id": "2041299", "match_num_str": "周日004", "league_name": "韩国职业联赛", "home_team": "金泉尚武", "away_team": "光州FC", "match_date": "2026-09-06", "match_time": "18:00:00", "sp_h": 1.46, "sp_d": 3.8, "sp_a": 5.5, "hafu_hh": 2.3, "hafu_dh": 4.05, "hafu_ah": 25.0, "hafu_hd": 19.0, "hafu_dd": 5.75, "hafu_ad": 19.0, "hafu_ha": 45.0, "hafu_da": 12.5, "hafu_aa": 10.0, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.3856, "shrinkage": -5.1, "is_suitable": true }, { "match_id": "2041317", "match_num_str": "周日022", "league_name": "法国甲级联赛", "home_team": "马赛", "away_team": "巴黎FC", "match_date": "2026-09-07", "match_time": "02:45:00", "sp_h": 1.61, "sp_d": 3.7, "sp_a": 4.2, "hafu_hh": 2.55, "hafu_dh": 4.55, "hafu_ah": 23.0, "hafu_hd": 16.0, "hafu_dd": 6.1, "hafu_ad": 16.0, "hafu_ha": 40.0, "hafu_da": 10.0, "hafu_aa": 7.5, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 1.5258, "shrinkage": -5.23, "is_suitable": false }, { "match_id": "2041318", "match_num_str": "周日023", "league_name": "西班牙甲级联赛", "home_team": "西班牙人", "away_team": "塞维利亚", "match_date": "2026-09-07", "match_time": "03:00:00", "sp_h": 2.05, "sp_d": 2.95, "sp_a": 3.3, "hafu_hh": 3.6, "hafu_dh": 4.95, "hafu_ah": 28.0, "hafu_hd": 16.0, "hafu_dd": 4.3, "hafu_ad": 16.0, "hafu_ha": 35.0, "hafu_da": 7.25, "hafu_aa": 6.1, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.9398, "shrinkage": -5.38, "is_suitable": true }, { "match_id": "2041314", "match_num_str": "周日019", "league_name": "西班牙甲级联赛", "home_team": "阿拉维斯", "away_team": "奥萨苏纳", "match_date": "2026-09-07", "match_time": "00:30:00", "sp_h": 2.1, "sp_d": 2.95, "sp_a": 3.2, "hafu_hh": 3.7, "hafu_dh": 5.0, "hafu_ah": 30.0, "hafu_hd": 16.0, "hafu_dd": 4.3, "hafu_ad": 16.0, "hafu_ha": 35.0, "hafu_da": 7.25, "hafu_aa": 5.65, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 1.9857, "shrinkage": -5.44, "is_suitable": false }, { "match_id": "2041322", "match_num_str": "周一003", "league_name": "瑞典超级联赛", "home_team": "马尔默", "away_team": "AIK索尔纳", "match_date": "2026-09-08", "match_time": "01:00:00", "sp_h": 1.67, "sp_d": 3.85, "sp_a": 3.7, "hafu_hh": 2.65, "hafu_dh": 4.8, "hafu_ah": 21.0, "hafu_hd": 16.0, "hafu_dd": 6.7, "hafu_ad": 16.0, "hafu_ha": 33.0, "hafu_da": 9.5, "hafu_aa": 6.2, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.579, "shrinkage": -5.45, "is_suitable": true }, { "match_id": "2041315", "match_num_str": "周日020", "league_name": "西班牙甲级联赛", "home_team": "马拉加", "away_team": "莱万特", "match_date": "2026-09-07", "match_time": "00:30:00", "sp_h": 2.25, "sp_d": 3.15, "sp_a": 2.72, "hafu_hh": 3.9, "hafu_dh": 5.6, "hafu_ah": 28.0, "hafu_hd": 15.0, "hafu_dd": 5.0, "hafu_ad": 15.0, "hafu_ha": 30.0, "hafu_da": 6.5, "hafu_aa": 4.7, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.1245, "shrinkage": -5.58, "is_suitable": true }, { "match_id": "2041313", "match_num_str": "周日018", "league_name": "意大利甲级联赛", "home_team": "博洛尼亚", "away_team": "萨索洛", "match_date": "2026-09-07", "match_time": "00:00:00", "sp_h": 1.88, "sp_d": 3.25, "sp_a": 3.45, "hafu_hh": 3.05, "hafu_dh": 5.0, "hafu_ah": 27.0, "hafu_hd": 16.0, "hafu_dd": 5.25, "hafu_ad": 16.0, "hafu_ha": 35.0, "hafu_da": 8.25, "hafu_aa": 5.75, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.7702, "shrinkage": -5.84, "is_suitable": true }, { "match_id": "2041311", "match_num_str": "周日016", "league_name": "英格兰超级联赛", "home_team": "阿森纳", "away_team": "切尔西", "match_date": "2026-09-06", "match_time": "23:30:00", "sp_h": 1.52, "sp_d": 3.75, "sp_a": 4.9, "hafu_hh": 2.35, "hafu_dh": 4.3, "hafu_ah": 23.0, "hafu_hd": 17.0, "hafu_dd": 6.3, "hafu_ad": 17.0, "hafu_ha": 36.0, "hafu_da": 11.5, "hafu_aa": 9.0, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 1.4254, "shrinkage": -6.22, "is_suitable": false }, { "match_id": "2041328", "match_num_str": "周一009", "league_name": "巴西甲级联赛", "home_team": "维多利亚", "away_team": "格雷米奥", "match_date": "2026-09-08", "match_time": "07:00:00", "sp_h": 1.94, "sp_d": 3.1, "sp_a": 3.45, "hafu_hh": 3.2, "hafu_dh": 4.8, "hafu_ah": 30.0, "hafu_hd": 15.0, "hafu_dd": 5.0, "hafu_ad": 15.0, "hafu_ha": 42.0, "hafu_da": 8.0, "hafu_aa": 6.0, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.8045, "shrinkage": -6.98, "is_suitable": true }, { "match_id": "2041296", "match_num_str": "周日001", "league_name": "日本职业联赛", "home_team": "鹿岛鹿角", "away_team": "浦和红钻", "match_date": "2026-09-06", "match_time": "17:00:00", "sp_h": 1.69, "sp_d": 3.55, "sp_a": 3.9, "hafu_hh": 2.73, "hafu_dh": 4.45, "hafu_ah": 22.0, "hafu_hd": 15.5, "hafu_dd": 6.0, "hafu_ad": 15.5, "hafu_ha": 35.0, "hafu_da": 9.5, "hafu_aa": 7.2, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.5712, "shrinkage": -7.03, "is_suitable": true }, { "match_id": "2041327", "match_num_str": "周一008", "league_name": "西班牙甲级联赛", "home_team": "埃尔切", "away_team": "皇家社会", "match_date": "2026-09-08", "match_time": "03:30:00", "sp_h": 2.75, "sp_d": 3.3, "sp_a": 2.16, "hafu_hh": 4.7, "hafu_dh": 7.0, "hafu_ah": 28.0, "hafu_hd": 15.0, "hafu_dd": 5.5, "hafu_ad": 15.0, "hafu_ha": 25.0, "hafu_da": 5.6, "hafu_aa": 3.6, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 2.5553, "shrinkage": -7.08, "is_suitable": false }, { "match_id": "2041301", "match_num_str": "周日006", "league_name": "英格兰冠军联赛", "home_team": "伯明翰", "away_team": "伍尔弗汉普顿", "match_date": "2026-09-06", "match_time": "19:00:00", "sp_h": 2.7, "sp_d": 3.0, "sp_a": 2.35, "hafu_hh": 4.75, "hafu_dh": 6.5, "hafu_ah": 29.0, "hafu_hd": 15.0, "hafu_dd": 4.9, "hafu_ad": 15.0, "hafu_ha": 28.0, "hafu_da": 5.7, "hafu_aa": 3.9, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.5072, "shrinkage": -7.14, "is_suitable": true }, { "match_id": "2041300", "match_num_str": "周日005", "league_name": "日本职业联赛", "home_team": "东京FC", "away_team": "京都不死鸟", "match_date": "2026-09-06", "match_time": "18:30:00", "sp_h": 1.48, "sp_d": 3.9, "sp_a": 5.1, "hafu_hh": 2.28, "hafu_dh": 4.05, "hafu_ah": 23.0, "hafu_hd": 17.5, "hafu_dd": 6.7, "hafu_ad": 17.5, "hafu_ha": 45.0, "hafu_da": 12.0, "hafu_aa": 9.5, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.3718, "shrinkage": -7.31, "is_suitable": true }, { "match_id": "2041321", "match_num_str": "周一002", "league_name": "西班牙甲级联赛", "home_team": "赫塔费", "away_team": "维戈塞尔塔", "match_date": "2026-09-08", "match_time": "01:00:00", "sp_h": 2.34, "sp_d": 2.65, "sp_a": 3.08, "hafu_hh": 4.25, "hafu_dh": 5.15, "hafu_ah": 30.0, "hafu_hd": 17.0, "hafu_dd": 3.65, "hafu_ad": 17.0, "hafu_ha": 35.0, "hafu_da": 6.75, "hafu_aa": 5.8, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.1608, "shrinkage": -7.66, "is_suitable": true }, { "match_id": "2041309", "match_num_str": "周日014", "league_name": "葡萄牙超级联赛", "home_team": "圣克拉拉", "away_team": "里奥阿维", "match_date": "2026-09-06", "match_time": "22:30:00", "sp_h": 1.77, "sp_d": 3.12, "sp_a": 4.1, "hafu_hh": 2.85, "hafu_dh": 4.4, "hafu_ah": 28.0, "hafu_hd": 17.0, "hafu_dd": 4.85, "hafu_ad": 17.0, "hafu_ha": 45.0, "hafu_da": 9.0, "hafu_aa": 7.5, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.629, "shrinkage": -7.97, "is_suitable": true }, { "match_id": "2041325", "match_num_str": "周一006", "league_name": "意大利甲级联赛", "home_team": "乌迪内斯", "away_team": "拉齐奥", "match_date": "2026-09-08", "match_time": "02:45:00", "sp_h": 2.75, "sp_d": 2.9, "sp_a": 2.38, "hafu_hh": 4.75, "hafu_dh": 6.5, "hafu_ah": 32.0, "hafu_hd": 16.0, "hafu_dd": 4.5, "hafu_ad": 16.0, "hafu_ha": 28.0, "hafu_da": 5.5, "hafu_aa": 4.1, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 2.5277, "shrinkage": -8.08, "is_suitable": false }, { "match_id": "2041316", "match_num_str": "周日021", "league_name": "意大利甲级联赛", "home_team": "尤文图斯", "away_team": "AC米兰", "match_date": "2026-09-07", "match_time": "02:45:00", "sp_h": 1.87, "sp_d": 3.2, "sp_a": 3.55, "hafu_hh": 2.9, "hafu_dh": 5.0, "hafu_ah": 27.0, "hafu_hd": 16.0, "hafu_dd": 5.25, "hafu_ad": 16.0, "hafu_ha": 35.0, "hafu_da": 8.5, "hafu_aa": 6.25, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 1.7186, "shrinkage": -8.1, "is_suitable": false }, { "match_id": "2041319", "match_num_str": "周日024", "league_name": "巴西甲级联赛", "home_team": "博塔弗戈", "away_team": "帕尔梅拉斯", "match_date": "2026-09-07", "match_time": "05:30:00", "sp_h": 3.1, "sp_d": 3.22, "sp_a": 2.02, "hafu_hh": 5.25, "hafu_dh": 7.5, "hafu_ah": 36.0, "hafu_hd": 15.0, "hafu_dd": 5.5, "hafu_ad": 15.0, "hafu_ha": 28.0, "hafu_da": 5.1, "hafu_aa": 3.3, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.8442, "shrinkage": -8.25, "is_suitable": true }, { "match_id": "2041323", "match_num_str": "周一004", "league_name": "瑞典超级联赛", "home_team": "卡尔马", "away_team": "佐加顿斯", "match_date": "2026-09-08", "match_time": "01:00:00", "sp_h": 4.3, "sp_d": 3.85, "sp_a": 1.57, "hafu_hh": 7.5, "hafu_dh": 10.5, "hafu_ah": 40.0, "hafu_hd": 16.0, "hafu_dd": 6.5, "hafu_ad": 16.0, "hafu_ha": 22.0, "hafu_da": 4.6, "hafu_aa": 2.45, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 3.9437, "shrinkage": -8.29, "is_suitable": true }, { "match_id": "2041306", "match_num_str": "周日011", "league_name": "法国甲级联赛", "home_team": "特鲁瓦", "away_team": "斯特拉斯堡", "match_date": "2026-09-06", "match_time": "21:00:00", "sp_h": 2.93, "sp_d": 3.3, "sp_a": 2.06, "hafu_hh": 4.9, "hafu_dh": 7.2, "hafu_ah": 34.0, "hafu_hd": 15.0, "hafu_dd": 5.4, "hafu_ad": 15.0, "hafu_ha": 27.0, "hafu_da": 5.35, "hafu_aa": 3.45, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.6854, "shrinkage": -8.35, "is_suitable": true }, { "match_id": "2041307", "match_num_str": "周日012", "league_name": "德国甲级联赛", "home_team": "汉堡", "away_team": "美因茨", "match_date": "2026-09-06", "match_time": "21:30:00", "sp_h": 2.52, "sp_d": 3.3, "sp_a": 2.33, "hafu_hh": 4.25, "hafu_dh": 6.25, "hafu_ah": 26.0, "hafu_hd": 15.0, "hafu_dd": 5.75, "hafu_ad": 15.0, "hafu_ha": 23.0, "hafu_da": 6.0, "hafu_aa": 3.95, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.3054, "shrinkage": -8.52, "is_suitable": true }, { "match_id": "2041297", "match_num_str": "周日002", "league_name": "日本职业联赛", "home_team": "名古屋鲸八", "away_team": "町田泽维亚", "match_date": "2026-09-06", "match_time": "17:00:00", "sp_h": 3.08, "sp_d": 3.36, "sp_a": 1.97, "hafu_hh": 5.3, "hafu_dh": 7.5, "hafu_ah": 29.0, "hafu_hd": 14.5, "hafu_dd": 6.0, "hafu_ad": 14.5, "hafu_ha": 22.0, "hafu_da": 5.15, "hafu_aa": 3.3, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 2.8051, "shrinkage": -8.93, "is_suitable": false }, { "match_id": "2041304", "match_num_str": "周日009", "league_name": "意大利甲级联赛", "home_team": "弗洛西诺内", "away_team": "威尼斯", "match_date": "2026-09-06", "match_time": "21:00:00", "sp_h": 2.55, "sp_d": 3.2, "sp_a": 2.36, "hafu_hh": 4.25, "hafu_dh": 6.25, "hafu_ah": 28.0, "hafu_hd": 15.0, "hafu_dd": 5.5, "hafu_ad": 15.0, "hafu_ha": 26.0, "hafu_da": 6.0, "hafu_aa": 3.95, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 2.3201, "shrinkage": -9.02, "is_suitable": true }, { "match_id": "2041305", "match_num_str": "周日010", "league_name": "意大利甲级联赛", "home_team": "帕尔马", "away_team": "蒙扎", "match_date": "2026-09-06", "match_time": "21:00:00", "sp_h": 2.17, "sp_d": 2.9, "sp_a": 3.1, "hafu_hh": 3.5, "hafu_dh": 5.25, "hafu_ah": 28.0, "hafu_hd": 16.0, "hafu_dd": 4.5, "hafu_ad": 16.0, "hafu_ha": 35.0, "hafu_da": 7.0, "hafu_aa": 5.75, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.9535, "shrinkage": -9.98, "is_suitable": true }, { "match_id": "2041320", "match_num_str": "周一001", "league_name": "意大利甲级联赛", "home_team": "卡利亚里", "away_team": "莱切", "match_date": "2026-09-08", "match_time": "00:30:00", "sp_h": 1.83, "sp_d": 3.05, "sp_a": 3.95, "hafu_hh": 2.85, "hafu_dh": 4.5, "hafu_ah": 28.0, "hafu_hd": 18.0, "hafu_dd": 4.5, "hafu_ad": 18.0, "hafu_ha": 45.0, "hafu_da": 9.0, "hafu_aa": 7.75, "betting_single": 1, "single_had": 0, "single_hafu": 1, "synth_sp": 1.6425, "shrinkage": -10.25, "is_suitable": true }, { "match_id": "2041303", "match_num_str": "周日008", "league_name": "英格兰超级联赛", "home_team": "埃弗顿", "away_team": "曼彻斯特联", "match_date": "2026-09-06", "match_time": "21:00:00", "sp_h": 3.18, "sp_d": 3.4, "sp_a": 1.92, "hafu_hh": 5.4, "hafu_dh": 7.75, "hafu_ah": 26.0, "hafu_hd": 14.0, "hafu_dd": 5.9, "hafu_ad": 14.0, "hafu_ha": 22.0, "hafu_da": 5.25, "hafu_aa": 3.3, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 2.8354, "shrinkage": -10.84, "is_suitable": false }, { "match_id": "2041298", "match_num_str": "周日003", "league_name": "韩国职业联赛", "home_team": "安养FC", "away_team": "江原FC", "match_date": "2026-09-06", "match_time": "18:00:00", "sp_h": 3.09, "sp_d": 3.1, "sp_a": 2.07, "hafu_hh": 5.25, "hafu_dh": 7.0, "hafu_ah": 30.0, "hafu_hd": 14.0, "hafu_dd": 4.9, "hafu_ad": 14.0, "hafu_ha": 28.0, "hafu_da": 5.4, "hafu_aa": 3.7, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 2.7273, "shrinkage": -11.74, "is_suitable": false }, { "match_id": "2041302", "match_num_str": "周日007", "league_name": "荷兰甲级联赛", "home_team": "海伦芬", "away_team": "阿尔克马尔", "match_date": "2026-09-06", "match_time": "20:30:00", "sp_h": 3.67, "sp_d": 3.98, "sp_a": 1.65, "hafu_hh": 5.85, "hafu_dh": 9.3, "hafu_ah": 30.0, "hafu_hd": 15.0, "hafu_dd": 7.7, "hafu_ad": 15.0, "hafu_ha": 19.0, "hafu_da": 5.2, "hafu_aa": 2.6, "betting_single": 1, "single_had": 1, "single_hafu": 1, "synth_sp": 3.2072, "shrinkage": -12.61, "is_suitable": false }];
+
+        // 9项元数据
+        const OUTCOMES_META = {
+            'hh': { name: '胜胜', half: '胜', full: '胜', color: 'emerald' },
+            'hd': { name: '胜平', half: '胜', full: '平', color: 'blue' },
+            'ha': { name: '胜负', half: '胜', full: '负', color: 'purple' },
+            'dh': { name: '平胜', half: '平', full: '胜', color: 'emerald' },
+            'dd': { name: '平平', half: '平', full: '平', color: 'blue' },
+            'da': { name: '平负', half: '平', full: '负', color: 'purple' },
+            'ah': { name: '负胜', half: '负', full: '胜', color: 'emerald' },
+            'ad': { name: '负平', half: '负', full: '平', color: 'blue' },
+            'aa': { name: '负负', half: '负', full: '负', color: 'purple' },
+        };
+
+        // 策略预设集
+        const STRATEGY_PRESETS = {
+            'ft_home': {
+                name: '全场主胜 (3项)',
+                desc: '覆盖全场主队获胜的全部半场走势，主胜100%有且仅有1张中奖（物理守恒）',
+                outcomes: ['hh', 'dh', 'ah'],
+                attack: ['hh', 'dh', 'ah'],
+                defense: []
+            },
+            'ft_draw': {
+                name: '全场平局 (3项)',
+                desc: '覆盖全场双方打平的全部半场走势，打平100%有且仅有1张中奖（物理守恒）',
+                outcomes: ['hd', 'dd', 'ad'],
+                attack: ['hd', 'dd', 'ad'],
+                defense: []
+            },
+            'ft_away': {
+                name: '全场客胜 (3项)',
+                desc: '覆盖全场客队获胜的全部半场走势，客胜100%有且仅有1张中奖（物理守恒）',
+                outcomes: ['ha', 'da', 'aa'],
+                attack: ['ha', 'da', 'aa'],
+                defense: []
+            },
+            'ht_draw': {
+                name: '锁定半场平 (3项)',
+                desc: '锁定上半场打平 (0-0/1-1)，全包其后胜平负走势，只要半场打平100%中奖！',
+                outcomes: ['dh', 'dd', 'da'],
+                attack: ['dh', 'dd', 'da'],
+                defense: []
+            },
+            'ht_home': {
+                name: '锁定半场主领先 (3项)',
+                desc: '锁定上半场主队打进第一球/半场领先，全包全场胜平负，半场主胜100%中奖！',
+                outcomes: ['hh', 'hd', 'ha'],
+                attack: ['hh', 'hd', 'ha'],
+                defense: []
+            },
+            'ht_away': {
+                name: '锁定半场客领先 (3项)',
+                desc: '锁定上半场客队半场领先，全包全场胜平负，半场客胜100%中奖！',
+                outcomes: ['ah', 'ad', 'aa'],
+                attack: ['ah', 'ad', 'aa'],
+                defense: []
+            },
+            'double_home_draw': {
+                name: '主队不败 (胜+平 6项)',
+                desc: '主胜或打平均中奖！只要客队不赢即可稳妥兑奖；支持“主攻胜+防守平保本”防冷！',
+                outcomes: ['hh', 'dh', 'ah', 'hd', 'dd', 'ad'],
+                attack: ['hh', 'dh', 'ah'],
+                defense: ['hd', 'dd', 'ad']
+            },
+            'double_away_draw': {
+                name: '客队不败 (平+负 6项)',
+                desc: '客胜或打平均中奖！只要主队不赢即可兑奖；支持“主攻客胜+防守平保本”！',
+                outcomes: ['hd', 'dd', 'ad', 'ha', 'da', 'aa'],
+                attack: ['ha', 'da', 'aa'],
+                defense: ['hd', 'dd', 'ad']
+            },
+            'double_decisive': {
+                name: '决出胜负 (胜+负 6项)',
+                desc: '大开大合两头通吃！只要全场不打平即可兑奖；排除无聊默契平局！',
+                outcomes: ['hh', 'dh', 'ah', 'ha', 'da', 'aa'],
+                attack: ['hh', 'dh', 'ah'],
+                defense: ['ha', 'da', 'aa']
+            },
+            'double_ht_home_draw': {
+                name: '主半场不败 (6项)',
+                desc: '上半场主队领先或双方打平即可兑奖！锁定主队半场绝不落后！',
+                outcomes: ['hh', 'hd', 'ha', 'dh', 'dd', 'da'],
+                attack: ['hh', 'dh', 'dd'],
+                defense: ['hd', 'ha', 'da']
+            }
+        };
+
+        let currentActivePreset = 'ft_home';
+        let currentAllocMode = 'dutched'; // 'dutched' | 'attack_defense' | 'equal_units'
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMatchList();
+            calculate();
+        });
+
+        // 切换原理弹窗
+        function toggleExplainModal() {
+            const modal = document.getElementById('explainModal');
+            modal.classList.toggle('hidden');
+        }
+
+        // 设置配资模式
+        function setAllocationMode(mode) {
+            currentAllocMode = mode;
+            const btnD = document.getElementById('allocBtnDutched');
+            const btnA = document.getElementById('allocBtnAttack');
+            const btnE = document.getElementById('allocBtnEqual');
+
+            [btnD, btnA, btnE].forEach(b => {
+                b.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white whitespace-nowrap';
+            });
+
+            if (mode === 'dutched') {
+                btnD.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
+                document.getElementById('planModeHint').innerText = '当前：绝对等额对冲 (平滑保底)';
+            } else if (mode === 'attack_defense') {
+                btnA.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
+                document.getElementById('planModeHint').innerText = '当前：核心主攻 + 防守保本 (阶梯出票)';
+            } else if (mode === 'equal_units') {
+                btnE.className = 'px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
+                document.getElementById('planModeHint').innerText = '当前：均注搏冷 (1:1等注数)';
+            }
+            calculate();
+        }
+
+        // 快捷预算
+        function setBudget(amt) {
+            document.getElementById('inputBudget').value = amt;
+            calculate();
+        }
+
+        // 应用策略预设
+        function applyPreset(presetKey) {
+            currentActivePreset = presetKey;
+            const preset = STRATEGY_PRESETS[presetKey];
+            if (!preset) return;
+
+            // 更新预设按钮样式
+            Object.keys(STRATEGY_PRESETS).forEach(k => {
+                const btn = document.getElementById(`preset_${k}`);
+                if (btn) {
+                    btn.className = (k === presetKey)
+                        ? 'px-2.5 py-1 rounded text-xs font-medium transition bg-emerald-500 text-white whitespace-nowrap shadow-sm'
+                        : 'px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap';
+                }
+            });
+
+            // 描述更新
+            document.getElementById('strategyDescText').innerHTML = `
+                <span class="text-emerald-400 font-bold">当前策略: ${preset.name}</span>
+                <span>${preset.desc}</span>
+            `;
+
+            // 同步勾选九宫格
+            Object.keys(OUTCOMES_META).forEach(k => {
+                const isSelected = preset.outcomes.includes(k);
+                const chk = document.getElementById(`chk_${k}`);
+                const cell = document.getElementById(`cell_${k}`);
+                if (chk) chk.checked = isSelected;
+                if (cell) {
+                    if (isSelected) {
+                        cell.classList.add('selected');
+                        cell.classList.remove('bg-slate-800/30', 'border-slate-800');
+                        cell.classList.add('bg-slate-800/60', 'border-slate-700');
+                    } else {
+                        cell.classList.remove('selected');
+                        cell.classList.add('bg-slate-800/30', 'border-slate-800');
+                        cell.classList.remove('bg-slate-800/60', 'border-slate-700');
+                    }
+                }
+            });
+
+            // 如果选了 6 项不败类，并且当前是 attack_defense，自动适配攻守组
+            calculate();
+        }
+
+        // 点击九宫格单元格增删
+        function toggleCell(key, event) {
+            const chk = document.getElementById(`chk_${key}`);
+            const cell = document.getElementById(`cell_${key}`);
+            if (event.target !== chk) {
+                chk.checked = !chk.checked;
+            }
+            if (chk.checked) {
+                cell.classList.add('selected');
+                cell.classList.remove('bg-slate-800/30', 'border-slate-800');
+                cell.classList.add('bg-slate-800/60', 'border-slate-700');
+            } else {
+                cell.classList.remove('selected');
+                cell.classList.add('bg-slate-800/30', 'border-slate-800');
+                cell.classList.remove('bg-slate-800/60', 'border-slate-700');
+            }
+            calculate();
+        }
+
+        // 核心配资计算引擎
+        function calculate() {
+            const budget = parseFloat(document.getElementById('inputBudget').value) || 100;
+
+            // 1. 获取所有勾选的项与对应赔率
+            const selected = [];
+            Object.keys(OUTCOMES_META).forEach(k => {
+                const chk = document.getElementById(`chk_${k}`);
+                if (chk && chk.checked) {
+                    const odds = parseFloat(document.getElementById(`odds_${k}`).value) || 0;
+                    if (odds > 0) {
+                        selected.push({ key: k, odds: odds, meta: OUTCOMES_META[k] });
+                    }
+                }
+            });
+
+            document.getElementById('selectedCountBadge').innerText = `已选 ${selected.length} 项`;
+
+            if (selected.length === 0) {
+                document.getElementById('resSynthSp').innerText = '--';
+                document.getElementById('resBreakEvenTag').innerHTML = '<span class="text-slate-500">未选择赛果</span>';
+                document.getElementById('planCardsContainer').innerHTML = '<div class="py-6 text-center text-slate-500 text-xs">请勾选至少 1 项半全场赛果</div>';
+                return;
+            }
+
+            // 2. 组合合成单关 SP: 1 / sum(1 / odds)
+            const sumInv = selected.reduce((acc, item) => acc + (1.0 / item.odds), 0);
+            const synthSp = sumInv > 0 ? (1.0 / sumInv) : 0;
+            document.getElementById('resSynthSp').innerText = synthSp.toFixed(4);
+
+            // 3. 无损对冲研判
+            const probSum = sumInv * 100;
+            document.getElementById('resProbSum').innerText = `隐含概率: ${probSum.toFixed(1)}%`;
+            const tagEl = document.getElementById('resBreakEvenTag');
+
+            if (synthSp >= 1.0) {
+                tagEl.innerHTML = `<span class="text-emerald-400 font-bold">可绝对保本盈利 (+${((synthSp - 1.0) * 100).toFixed(1)}%)</span>`;
+            } else if (synthSp >= 0.95) {
+                tagEl.innerHTML = `<span class="text-amber-400 font-semibold">微弱折损 (${((synthSp - 1.0) * 100).toFixed(1)}%)</span>`;
+            } else {
+                tagEl.innerHTML = `<span class="text-slate-400">综合折损 (${((synthSp - 1.0) * 100).toFixed(1)}%)</span>`;
+            }
+
+            // 覆盖类型提示
+            if (selected.length === 3) {
+                document.getElementById('resCoverageType').innerText = '全景覆盖 (3项)';
+                document.getElementById('resCoverageDetail').innerText = '该赛果方向100%有且仅有1张中';
+            } else if (selected.length === 6) {
+                document.getElementById('resCoverageType').innerText = '双选不败 (6项)';
+                document.getElementById('resCoverageDetail').innerText = '覆盖2种全场赛果，容错率极高';
+            } else {
+                document.getElementById('resCoverageType').innerText = `自定义组合 (${selected.length}项)`;
+                document.getElementById('resCoverageDetail').innerText = '自由点选策略';
+            }
+
+            // 4. 计算各注数 (实体店 2 元整数)
+            const totalTargetUnits = Math.max(selected.length, Math.round(budget / 2));
+            const unitsMap = {};
+
+            // 获取当前策略的攻守分组 (如果当前预设存在)
+            const curPreset = STRATEGY_PRESETS[currentActivePreset];
+            const hasDefense = curPreset && curPreset.defense && curPreset.defense.length > 0;
+
+            if (currentAllocMode === 'attack_defense' && hasDefense) {
+                // 核心主攻 + 防守保本模式
+                const defKeys = curPreset.defense.filter(k => selected.some(s => s.key === k));
+                const attKeys = curPreset.attack.filter(k => selected.some(s => s.key === k));
+
+                let defUnitsTotal = 0;
+                // 对防守项配置刚好保本的注数: 2 * u * odds >= budget => u = ceil(budget / (2 * odds))
+                defKeys.forEach(k => {
+                    const item = selected.find(s => s.key === k);
+                    if (item) {
+                        const u = Math.max(1, Math.ceil(budget / (2.0 * item.odds)));
+                        unitsMap[k] = u;
+                        defUnitsTotal += u;
+                    }
+                });
+
+                // 剩余注数给主攻项
+                const remainUnits = Math.max(attKeys.length, totalTargetUnits - defUnitsTotal);
+                const attSumInv = attKeys.reduce((acc, k) => {
+                    const item = selected.find(s => s.key === k);
+                    return acc + (item ? (1.0 / item.odds) : 0);
+                }, 0);
+
+                attKeys.forEach(k => {
+                    const item = selected.find(s => s.key === k);
+                    if (item && attSumInv > 0) {
+                        const w = (1.0 / item.odds) / attSumInv;
+                        unitsMap[k] = Math.max(1, Math.round(remainUnits * w));
+                    } else {
+                        unitsMap[k] = 1;
+                    }
+                });
+
+                // 微调总注数
+                const curTotal = Object.values(unitsMap).reduce((a, b) => a + b, 0);
+                const diff = totalTargetUnits - curTotal;
+                if (diff !== 0 && attKeys.length > 0) {
+                    unitsMap[attKeys[0]] = Math.max(1, (unitsMap[attKeys[0]] || 1) + diff);
+                }
+
+            } else if (currentAllocMode === 'equal_units') {
+                // 均注模式: 1:1
+                const each = Math.max(1, Math.floor(totalTargetUnits / selected.length));
+                selected.forEach(s => unitsMap[s.key] = each);
+                let rem = totalTargetUnits - (each * selected.length);
+                if (rem > 0) {
+                    unitsMap[selected[0].key] += rem;
+                }
+
+            } else {
+                // 经典荷兰式等额对冲 (按 1/odds 分配)
+                selected.forEach(s => {
+                    const w = (1.0 / s.odds) / sumInv;
+                    unitsMap[s.key] = Math.max(1, Math.round(totalTargetUnits * w));
+                });
+
+                // 微调
+                const curTotal = Object.values(unitsMap).reduce((a, b) => a + b, 0);
+                const diff = totalTargetUnits - curTotal;
+                if (diff !== 0) {
+                    unitsMap[selected[0].key] = Math.max(1, unitsMap[selected[0].key] + diff);
+                }
+            }
+
+            // 5. 渲染出票方案卡片
+            let totalCost = 0;
+            let totalUnits = 0;
+            const rois = [];
+
+            const container = document.getElementById('planCardsContainer');
+            container.innerHTML = '';
+
+            selected.forEach(item => {
+                const u = unitsMap[item.key] || 1;
+                const cost = u * 2;
+                const payout = cost * item.odds;
+                totalCost += cost;
+                totalUnits += u;
+
+                const isDef = hasDefense && curPreset.defense.includes(item.key);
+                const tagLabel = isDef ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">防守保本</span>'
+                    : (hasDefense ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">核心主攻</span>' : '');
+
+                // 暂存用于计算真实 ROI
+                item.u = u;
+                item.cost = cost;
+                item.payout = payout;
+                item.isDef = isDef;
+                item.tagLabel = tagLabel;
+            });
+
+            // 重新计算各选项基于真实总花费的 ROI
+            selected.forEach(item => {
+                const roi = ((item.payout - totalCost) / totalCost) * 100;
+                rois.push(roi);
+
+                let roiColorClass = 'text-emerald-400';
+                let roiBgClass = 'border-emerald-500/20 bg-slate-800/70';
+                if (roi < -5) {
+                    roiColorClass = 'text-red-400';
+                    roiBgClass = 'border-slate-700 bg-slate-800/40';
+                } else if (roi <= 5) {
+                    roiColorClass = 'text-amber-400';
+                    roiBgClass = 'border-amber-500/20 bg-slate-800/70';
+                }
+
+                const div = document.createElement('div');
+                div.className = `p-2.5 rounded-lg border ${roiBgClass} flex flex-wrap items-center justify-between gap-2 text-xs transition`;
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2.5">
+                        <span class="px-2 py-0.5 rounded bg-slate-900 font-bold font-mono text-white border border-slate-700">${item.meta.name}</span>
+                        ${item.tagLabel}
+                        <span class="text-slate-300">SP: <strong class="font-mono text-white">${item.odds.toFixed(2)}</strong></span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div>
+                            <span class="text-slate-400">买入: </span>
+                            <span class="font-bold text-white font-mono text-sm">${item.u}</span> 注
+                            <span class="text-slate-400 font-mono">(¥${item.cost})</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-slate-400">命中返: </span>
+                            <span class="font-bold text-white font-mono text-sm">¥${item.payout.toFixed(2)}</span>
+                            <span class="text-[11px] font-mono ${roiColorClass} ml-1 font-bold">(${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%)</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('planTotalCost').innerText = `¥${totalCost}`;
+            document.getElementById('planTotalUnits').innerText = totalUnits;
+
+            const minRoi = Math.min(...rois);
+            const maxRoi = Math.max(...rois);
+            document.getElementById('planRoiSummary').innerText = `${minRoi >= 0 ? '+' : ''}${minRoi.toFixed(1)}% ~ ${maxRoi >= 0 ? '+' : ''}${maxRoi.toFixed(1)}%`;
+        }
+
+                let currentListTarget = 'h'; // 'h' (主胜) | 'd' (平局) | 'a' (客胜)
+
+        // 切换列表拆单目标方向
+        function setListTargetOutcome(target) {
+            currentListTarget = target;
+            ['h', 'd', 'a'].forEach(t => {
+                const btn = document.getElementById(`targetBtn_${t}`);
+                if (btn) {
+                    if (t === target) {
+                        btn.className = 'px-2.5 py-1 rounded text-xs font-bold transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded text-xs font-medium transition text-slate-300 hover:text-white bg-slate-800/80 whitespace-nowrap';
+                    }
+                }
+            });
+
+            // 更新表头文本
+            const thSp = document.getElementById('thTargetSp');
+            const thCombo = document.getElementById('thTargetCombo');
+            if (target === 'h') {
+                if (thSp) thSp.innerText = '官方主胜SP';
+                if (thCombo) thCombo.innerText = '半全场主胜 (胜胜 / 平胜 / 负胜)';
+            } else if (target === 'd') {
+                if (thSp) thSp.innerText = '官方平局SP';
+                if (thCombo) thCombo.innerText = '半全场平局 (胜平 / 平平 / 负平)';
+            } else if (target === 'a') {
+                if (thSp) thSp.innerText = '官方客胜SP';
+                if (thCombo) thCombo.innerText = '半全场客胜 (胜负 / 平负 / 负负)';
+            }
+
+            renderMatchList();
+        }
+
+        // 渲染在售比赛列表 (动态支持主胜/平局/客胜三赛果折损测算)
+        function renderMatchList() {
+            const hideSingle = document.getElementById('filterHideSingle').checked;
+            const sortBy = document.getElementById('selectSort').value;
+            const searchKw = document.getElementById('inputSearch').value.trim().toLowerCase();
+
+            // 为每场比赛动态计算当前选定赛果方向的合成赔率与折损率
+            matchesData.forEach(m => {
+                let targetSp = 0;
+                let c1 = 0, c2 = 0, c3 = 0;
+                let c1Name = '', c2Name = '', c3Name = '';
+
+                if (currentListTarget === 'h') {
+                    targetSp = m.sp_h || 0;
+                    c1 = m.hafu_hh || 0; c2 = m.hafu_dh || 0; c3 = m.hafu_ah || 0;
+                    c1Name = '胜胜'; c2Name = '平胜'; c3Name = '负胜';
+                } else if (currentListTarget === 'd') {
+                    targetSp = m.sp_d || 0;
+                    c1 = m.hafu_hd || 0; c2 = m.hafu_dd || 0; c3 = m.hafu_ad || 0;
+                    c1Name = '胜平'; c2Name = '平平'; c3Name = '负平';
+                } else if (currentListTarget === 'a') {
+                    targetSp = m.sp_a || 0;
+                    c1 = m.hafu_ha || 0; c2 = m.hafu_da || 0; c3 = m.hafu_aa || 0;
+                    c1Name = '胜负'; c2Name = '平负'; c3Name = '负负';
+                }
+
+                let curSynth = 0;
+                let curShrinkage = 0;
+                if (c1 > 0 && c2 > 0 && c3 > 0) {
+                    const invSum = (1.0 / c1) + (1.0 / c2) + (1.0 / c3);
+                    curSynth = invSum > 0 ? Number((1.0 / invSum).toFixed(4)) : 0;
+                    curShrinkage = targetSp > 0 ? Number(((curSynth - targetSp) / targetSp * 100).toFixed(2)) : 0;
+                }
+
+                m._curTargetSp = targetSp;
+                m._curSynthSp = curSynth;
+                m._curShrinkage = curShrinkage;
+                m._curCombo = [
+                    { name: c1Name, val: c1 },
+                    { name: c2Name, val: c2 },
+                    { name: c3Name, val: c3 }
+                ];
+            });
+
+            // 1. 过滤
+            let list = matchesData.filter(m => {
+                if (hideSingle && m.single_had === 1) return false;
+                if (searchKw) {
+                    const fullStr = `${m.league_name} ${m.home_team} ${m.away_team} ${m.match_num_str}`.toLowerCase();
+                    if (!fullStr.includes(searchKw)) return false;
+                }
+                return true;
+            });
+
+            // 2. 排序
+            if (sortBy === 'shrinkage_asc') {
+                list.sort((a, b) => b._curShrinkage - a._curShrinkage);
+            } else if (sortBy === 'time_asc') {
+                list.sort((a, b) => (a.match_date + a.match_time).localeCompare(b.match_date + b.match_time));
+            } else if (sortBy === 'sp_asc') {
+                list.sort((a, b) => a._curTargetSp - b._curTargetSp);
+            } else if (sortBy === 'sp_desc') {
+                list.sort((a, b) => b._curTargetSp - a._curTargetSp);
+            }
+
+            const totalSuitable = matchesData.filter(m => m.single_had === 0).length;
+            const targetLabel = currentListTarget === 'h' ? '主胜' : (currentListTarget === 'd' ? '平局' : '客胜');
+            document.getElementById('matchListCountText').innerText = `(共 ${matchesData.length} 场，${totalSuitable} 场未开单关适合拆单 · 当前分析: ${targetLabel})`;
+
+            const tbody = document.getElementById('matchTableBody');
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-500 text-xs">没有匹配的在售比赛</td></tr>`;
+                return;
+            }
+
+            list.forEach((m, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition group';
+
+                let shrinkBadgeClass = 'bg-slate-800 text-slate-400 border-slate-700';
+                if (m._curShrinkage >= -5.0) {
+                    shrinkBadgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold';
+                } else if (m._curShrinkage >= -8.0) {
+                    shrinkBadgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold';
+                }
+
+                const singleBadge = m.single_had === 1
+                    ? `<span class="px-2 py-0.5 rounded text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 whitespace-nowrap">已开单关</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold whitespace-nowrap">未开单关⭐</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-3 text-center font-mono text-slate-500">${idx + 1}</td>
+                    <td class="py-3 px-3 whitespace-nowrap">
+                        <div class="font-bold text-white font-mono">${m.match_num_str || ''}</div>
+                        <div class="text-[11px] text-slate-400">${m.league_name || ''}</div>
+                    </td>
+                    <td class="py-3 px-3 whitespace-nowrap">
+                        <div class="font-bold text-white">${m.home_team} <span class="text-slate-500 font-normal">vs</span> ${m.away_team}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center font-mono text-slate-400 whitespace-nowrap">
+                        ${(m.match_date || '').slice(5)} ${m.match_time || ''}
+                    </td>
+                    <td class="py-3 px-3 text-center whitespace-nowrap">${singleBadge}</td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-amber-400 text-sm whitespace-nowrap" title="胜平负SP: 胜 ${m.sp_h || '--'} / 平 ${m.sp_d || '--'} / 负 ${m.sp_a || '--'}">
+                        ${m._curTargetSp ? m._curTargetSp.toFixed(2) : '--'}
+                    </td>
+                    <td class="py-3 px-3 text-center font-mono text-xs whitespace-nowrap">
+                        <span class="text-emerald-400 font-bold">${m._curCombo[0].val}</span> / 
+                        <span class="text-blue-400 font-bold">${m._curCombo[1].val}</span> / 
+                        <span class="text-purple-400 font-bold">${m._curCombo[2].val}</span>
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-white text-sm whitespace-nowrap">
+                        ${m._curSynthSp ? m._curSynthSp.toFixed(4) : '--'}
+                    </td>
+                    <td class="py-3 px-3 text-center font-mono whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-full text-xs border ${shrinkBadgeClass}">
+                            ${m._curShrinkage >= 0 ? '+' : ''}${m._curShrinkage.toFixed(2)}%
+                        </span>
+                    </td>
+                    <td class="py-3 px-3 text-center whitespace-nowrap min-w-[100px]">
+                        <button onclick='loadMatchToCalc(${JSON.stringify(m)})' class="inline-flex items-center justify-center whitespace-nowrap px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-xs font-semibold active:scale-95 shadow-sm">
+                            ⚡ 载入测算
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 一键载入比赛数据到顶部测算器 (完整 9 项赔率灌入 + 联动预设)
+        function loadMatchToCalc(m) {
+            document.getElementById('inputMatchNum').value = m.match_num_str || '';
+            document.getElementById('inputHomeTeam').value = m.home_team || '';
+            document.getElementById('inputAwayTeam').value = m.away_team || '';
+
+            const spH = m.sp_h ? m.sp_h.toFixed(2) : '--';
+            const spD = m.sp_d ? m.sp_d.toFixed(2) : '--';
+            const spA = m.sp_a ? m.sp_a.toFixed(2) : '--';
+            document.getElementById('inputSpHDA').value = `${spH} / ${spD} / ${spA}`;
+
+            // 写入 9 项赔率
+            if (m.hafu_hh) document.getElementById('odds_hh').value = m.hafu_hh;
+            if (m.hafu_hd) document.getElementById('odds_hd').value = m.hafu_hd;
+            if (m.hafu_ha) document.getElementById('odds_ha').value = m.hafu_ha;
+            if (m.hafu_dh) document.getElementById('odds_dh').value = m.hafu_dh;
+            if (m.hafu_dd) document.getElementById('odds_dd').value = m.hafu_dd;
+            if (m.hafu_da) document.getElementById('odds_da').value = m.hafu_da;
+            if (m.hafu_ah) document.getElementById('odds_ah').value = m.hafu_ah;
+            if (m.hafu_ad) document.getElementById('odds_ad').value = m.hafu_ad;
+            if (m.hafu_aa) document.getElementById('odds_aa').value = m.hafu_aa;
+
+            document.getElementById('currentLoadedMatchTag').innerText = `${m.match_num_str || ''} ${m.home_team} vs ${m.away_team}`;
+
+            // 联动当前选定的拆单方向自动激活对应预设
+            if (currentListTarget === 'd') {
+                applyPreset('ft_draw');
+            } else if (currentListTarget === 'a') {
+                applyPreset('ft_away');
+            } else {
+                applyPreset('ft_home');
+            }
+
+            // 平滑滚动至测算器
+            const calcSection = document.getElementById('calculatorSection');
+            calcSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            calcSection.classList.add('glass-card-active');
+            setTimeout(() => {
+                calcSection.classList.remove('glass-card-active');
+            }, 1500);
+        }
+
+        // 在线刷新在售比赛
+        async function refreshMatchData() {
+            const btn = document.getElementById('btnRefresh');
+            const icon = document.getElementById('refreshIcon');
+            const badge = document.getElementById('dataSourceBadge');
+
+            btn.disabled = true;
+            icon.classList.add('animate-spin');
+
+            let fetched = false;
+
+            // 方案 1: 尝试直接拉取本地 Flask 接口
+            try {
+                const resp = await fetch('/api/jingcai/hafu_selling_matches');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.success && data.matches && data.matches.length > 0) {
+                        matchesData = data.matches;
+                        badge.innerText = `本地实时 (${matchesData.length}场)`;
+                        badge.className = 'text-emerald-400 font-medium font-mono';
+                        fetched = true;
+                    }
+                }
+            } catch (e) {
+                console.log('本地 Flask 接口未响应，尝试直连官网中枢:', e);
+            }
+
+            // 方案 2: 尝试直接拉取官网中枢计算器接口
+            if (!fetched) {
+                try {
+                    const sportteryUrl = 'https://webapi.sporttery.cn/gateway/jc/football/getMatchCalculatorV1.qry?poolCode=had,hhad,crs,ttg,hafu&channel=c';
+                    const resp = await fetch(sportteryUrl);
+                    if (resp.ok) {
+                        const raw = await resp.json();
+                        if (raw.success && raw.value && raw.value.matchInfoList) {
+                            const newMatches = [];
+                            raw.value.matchInfoList.forEach(g => {
+                                (g.subMatchList || []).forEach(m => {
+                                    const had = m.had || {};
+                                    const hafu = m.hafu || {};
+                                    const hh = parseFloat(hafu.hh || 0);
+                                    const dh = parseFloat(hafu.dh || 0);
+                                    const ah = parseFloat(hafu.ah || 0);
+                                    const sp_h = parseFloat(had.h || 0);
+
+                                    if (hh > 0 && dh > 0 && ah > 0) {
+                                        const synth_sp = Number((1.0 / (1.0 / hh + 1.0 / dh + 1.0 / ah)).toFixed(4));
+                                        const shrinkage = sp_h > 0 ? Number(((synth_sp - sp_h) / sp_h * 100).toFixed(2)) : 0;
+                                        newMatches.push({
+                                            match_id: String(m.matchId || ''),
+                                            match_num_str: m.matchNumStr || '',
+                                            league_name: m.leagueAllName || m.leagueAbbName || '',
+                                            home_team: m.homeTeamAllName || m.homeTeamAbbName || '',
+                                            away_team: m.awayTeamAllName || m.awayTeamAbbName || '',
+                                            match_date: m.matchDate || '',
+                                            match_time: m.matchTime || '',
+                                            sp_h: sp_h,
+                                            sp_d: parseFloat(had.d || 0),
+                                            sp_a: parseFloat(had.a || 0),
+                                            hafu_hh: hh,
+                                            hafu_hd: parseFloat(hafu.hd || 0),
+                                            hafu_ha: parseFloat(hafu.ha || 0),
+                                            hafu_dh: dh,
+                                            hafu_dd: parseFloat(hafu.dd || 0),
+                                            hafu_da: parseFloat(hafu.da || 0),
+                                            hafu_ah: ah,
+                                            hafu_ad: parseFloat(hafu.ad || 0),
+                                            hafu_aa: parseFloat(hafu.aa || 0),
+                                            single_had: parseInt(had.single || 0),
+                                            single_hafu: parseInt(hafu.single || 1),
+                                            synth_sp: synth_sp,
+                                            shrinkage: shrinkage
+                                        });
+                                    }
+                                });
+                            });
+
+                            if (newMatches.length > 0) {
+                                matchesData = newMatches;
+                                badge.innerText = `竞彩网直连 (${matchesData.length}场)`;
+                                badge.className = 'text-emerald-400 font-medium font-mono';
+                                fetched = true;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('直连官方接口遇到网络或跨域限制:', e);
+                }
+            }
+
+            
+            // 方案 2.5: 在公网部署环境下尝试通过公共 CORS 跨域代理直连官网
+            if (!fetched) {
+                try {
+                    const targetUrl = 'https://webapi.sporttery.cn/gateway/jc/football/getMatchCalculatorV1.qry?poolCode=had,hhad,crs,ttg,hafu&channel=c';
+                    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+                    const resp = await fetch(proxyUrl, { cache: 'no-cache' });
+                    if (resp.ok) {
+                        const raw = await resp.json();
+                        if (raw.success && raw.value && raw.value.matchInfoList) {
+                            const newMatches = [];
+                            raw.value.matchInfoList.forEach(g => {
+                                (g.subMatchList || []).forEach(m => {
+                                    const had = m.had || {};
+                                    const hafu = m.hafu || {};
+                                    const hh = parseFloat(hafu.hh || 0);
+                                    const dh = parseFloat(hafu.dh || 0);
+                                    const ah = parseFloat(hafu.ah || 0);
+                                    const sp_h = parseFloat(had.h || 0);
+
+                                    if (hh > 0 && dh > 0 && ah > 0) {
+                                        const synth_sp = Number((1.0 / (1.0 / hh + 1.0 / dh + 1.0 / ah)).toFixed(4));
+                                        const shrinkage = sp_h > 0 ? Number(((synth_sp - sp_h) / sp_h * 100).toFixed(2)) : 0;
+                                        newMatches.push({
+                                            match_id: String(m.matchId || ''),
+                                            match_num_str: m.matchNumStr || '',
+                                            league_name: m.leagueAllName || m.leagueAbbName || '',
+                                            home_team: m.homeTeamAllName || m.homeTeamAbbName || '',
+                                            away_team: m.awayTeamAllName || m.awayTeamAbbName || '',
+                                            match_date: m.matchDate || '',
+                                            match_time: m.matchTime || '',
+                                            sp_h: sp_h,
+                                            sp_d: parseFloat(had.d || 0),
+                                            sp_a: parseFloat(had.a || 0),
+                                            hafu_hh: hh,
+                                            hafu_hd: parseFloat(hafu.hd || 0),
+                                            hafu_ha: parseFloat(hafu.ha || 0),
+                                            hafu_dh: dh,
+                                            hafu_dd: parseFloat(hafu.dd || 0),
+                                            hafu_da: parseFloat(hafu.da || 0),
+                                            hafu_ah: ah,
+                                            hafu_ad: parseFloat(hafu.ad || 0),
+                                            hafu_aa: parseFloat(hafu.aa || 0),
+                                            single_had: parseInt(had.single || 0),
+                                            single_hafu: parseInt(hafu.single || 1),
+                                            synth_sp: synth_sp,
+                                            shrinkage: shrinkage
+                                        });
+                                    }
+                                });
+                            });
+                            if (newMatches.length > 0) {
+                                matchesData = newMatches;
+                                badge.innerText = `竞彩网直连 (${matchesData.length}场)`;
+                                badge.className = 'text-emerald-400 font-medium font-mono';
+                                fetched = true;
+                            }
+                        }
+                    }
+                } catch (proxyErr) {
+                    console.log('CORS 代理请求略过:', proxyErr);
+                }
+            }
+
+setTimeout(() => {
+                btn.disabled = false;
+                icon.classList.remove('animate-spin');
+                renderMatchList();
+                if (fetched) {
+                    alert(`在售比赛刷新成功！当前共载入 ${matchesData.length} 场比赛，已按最适合拆单排序。`);
+                } else {
+                    alert('当前网络脱机或处于本地文件沙盒，已自动平滑启用最新内置竞彩在售数据！');
+                }
+            }, 600);
+        }
+    </script>
+</body>
+
+</html>
