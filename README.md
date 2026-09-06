@@ -77,34 +77,23 @@ $$\text{折损率} = \frac{S_{synth} - S_{official}}{S_{official}} \times 100\%$
 
 ## 🚀 快速上手
 
-### 方式 A：纯前端直接使用 (最简单)
-直接在本地双击打开 `index.html`，或用任意现代浏览器打开即可使用所有测算与在售刷新功能。
+### 方式 A：在线直接访问 (推荐)
+直接访问已部署在 GitHub Pages 的在线版：
+👉 **[https://ethan930717.github.io/ht-ft-calculator/](https://ethan930717.github.io/ht-ft-calculator/)**
 
-### 方式 B：本地开发预览
+### 方式 B：本地双击直接使用 (无任何依赖)
+克隆或下载仓库后，直接在本地双击打开 `index.html`，即可在任意现代浏览器中使用所有测算与官网在售实时刷新功能。
+
+### 方式 C：本地开发服务预览
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/ht-ft-calculator.git
+git clone https://github.com/Ethan930717/ht-ft-calculator.git
 cd ht-ft-calculator
 
-# 使用 npx 启动本地服务器
+# 使用 npx 启动极简静态文件服务器
 npm run serve
 # 浏览器访问 http://localhost:3000
 ```
-
-### 方式 C：桌面版运行与打包 EXE
-```bash
-# 1. 安装桌面运行与打包依赖
-pip install -r requirements.txt
-
-# 2. 以独立桌面窗口运行
-python app.py
-
-# 3. 一键编译打包为独立的 Windows .exe 单文件
-npm run build:exe
-# 或者直接执行 PyInstaller：
-# pyinstaller -F -w -n "HtFtCalculator" --add-data "index.html;." app.py
-```
-编译完成后，可在 `dist/HtFtCalculator.exe` 找到独立的免安装执行文件。
 
 ---
 
@@ -112,10 +101,8 @@ npm run build:exe
 
 ```text
 ht-ft-calculator/
-├── index.html              # 核心应用：纯前端单文件版本 (HTML5 + Tailwind + 原生 JS)
-├── app.py                  # Python 桌面启动器 (基于 pywebview，支持离线窗口)
-├── requirements.txt        # Python 依赖清单
-├── package.json            # npm 脚本与元数据
+├── index.html              # 核心应用：纯前端单文件版本 (HTML5 + Tailwind CDN + 原生 JS，直连竞彩网 API)
+├── package.json            # npm 本地预览脚本与元数据
 ├── LICENSE                 # MIT 开源授权协议
 ├── .gitignore              # Git 忽略配置
 ├── README.md               # 项目主说明文档
