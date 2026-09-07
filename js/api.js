@@ -50,6 +50,14 @@ function parseSportteryRawMatches(raw) {
             if (hh > 0 && dh > 0 && ah > 0) {
                 const synth_sp = Number((1.0 / (1.0 / hh + 1.0 / dh + 1.0 / ah)).toFixed(4));
                 const shrinkage = sp_h > 0 ? Number(((synth_sp - sp_h) / sp_h * 100).toFixed(2)) : 0;
+
+                // 精准从 poolList 获取 HAD / HAFU 单关状态（兼容 cbtSingle、bettingSingle、single 官方标识）
+                const poolList = m.poolList || [];
+                const hadPool = poolList.find(p => (p.poolCode || '').toUpperCase() === 'HAD') || {};
+                const hafuPool = poolList.find(p => (p.poolCode || '').toUpperCase() === 'HAFU') || {};
+                const single_had = parseInt(hadPool.single ?? hadPool.bettingSingle ?? hadPool.cbtSingle ?? had.single ?? 0);
+                const single_hafu = parseInt(hafuPool.single ?? hafuPool.bettingSingle ?? hafuPool.cbtSingle ?? hafu.single ?? 1);
+
                 newMatches.push({
                     match_id: String(m.matchId || ''),
                     match_num_str: m.matchNumStr || '',
@@ -70,8 +78,8 @@ function parseSportteryRawMatches(raw) {
                     hafu_ah: ah,
                     hafu_ad: parseFloat(hafu.ad || 0),
                     hafu_aa: parseFloat(hafu.aa || 0),
-                    single_had: parseInt(had.single || 0),
-                    single_hafu: parseInt(hafu.single || 1),
+                    single_had: single_had,
+                    single_hafu: single_hafu,
                     synth_sp: synth_sp,
                     shrinkage: shrinkage
                 });
@@ -217,9 +225,25 @@ async function refreshMatchData(opts = {}) {
     const force = !!opts.force;
     const btn = document.getElementById('btnRefresh');
     const icon = document.getElementById('refreshIcon');
+    const btnText = document.getElementById('refreshBtnText');
+    const startTime = Date.now();
 
-    if (btn) btn.disabled = true;
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+    }
     if (icon) icon.classList.add('animate-spin');
+    if (btnText) btnText.textContent = '拉取中…';
+
+    // 确保至少 600ms 视觉反馈，让用户清晰感知刷新过程
+    const ensureMinSpin = async () => {
+        if (!silent) {
+            const elapsed = Date.now() - startTime;
+            if (elapsed < 600) {
+                await new Promise(r => setTimeout(r, 600 - elapsed));
+            }
+        }
+    };
 
     // —— 结算闸门：只允许结算一次；成功走 live、失败走 snapshot，统一在此收尾 ——
     let settled = false;          // 防重入：闸门 / 迟到的异步结果都只能结算一次
@@ -230,27 +254,44 @@ async function refreshMatchData(opts = {}) {
         settled = true;
         if (gateTimer) clearTimeout(gateTimer); // 关掉保险闸，避免二次结算
 
-        // 先复位并发锁与按钮态（无论后续成功 / 失败，都必须先放行下一次刷新）
+        // 复位并发锁、按钮态与加载文案
         refreshInFlight = false;
-        if (btn) btn.disabled = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
         if (icon) icon.classList.remove('animate-spin');
+        if (btnText) btnText.textContent = '刷新数据';
 
         if (ok && list && list.length > 0) {
-            // 成功收尾：置 live + 更新 matchesData + 时间戳 + 缓存 + 重绘 + 撤横幅（复用既有落地逻辑）
+            // 成功收尾：置 live + 更新 matchesData + 时间戳 + 缓存 + 重绘 + 撤横幅
             applyLiveData(list, ts || Date.now());
-            if (!silent) console.log(`[数据源] 实时拉取成功，已更新 ${list.length} 场比赛。`);
+            if (!silent) {
+                const total = list.length;
+                const singleCount = list.filter(m => m.single_had === 1).length;
+                const unopenedCount = list.filter(m => m.single_had === 0).length;
+                const msg = `刷新成功，当前共在售比赛 ${total} 场，其中胜平负单关 ${singleCount} 场，未开售单关 ${unopenedCount} 场`;
+                console.log(`[数据源] ${msg}`);
+                if (typeof showToast === 'function') {
+                    showToast(msg);
+                }
+            }
         } else {
             // 失败收尾：保持既有失败路径 —— 不动 matchesData、置 snapshot、弹降级横幅
             dataSourceState = 'snapshot';
             lastDataFailAt = Date.now(); // 记录失败时间（供 5 分钟静默自动刷新做 60s 跳过判断）
             renderDataSourceUI();        // 徽标 → 琥珀「获取失败·内置测试数据」
             showDataFallbackBanner();    // 弹出降级横幅（含文案与「重新拉取」入口）
-            if (!silent) console.log('[数据源] 双通道拉取失败，已降级为内置测试数据。');
+            if (!silent) {
+                console.log('[数据源] 双通道拉取失败，已降级为内置测试数据。');
+                if (typeof showToast === 'function') {
+                    showToast('⚠️ 竞彩网接口繁忙，已载入内置备用数据', 'error');
+                }
+            }
         }
     };
 
     // —— 绝对保险闸：启动 ~16s 后若仍未结算，强制按失败收尾 ——
-    // 不依赖 Promise.race / 不依赖主流程 await 是否恢复：此定时器独立运行、直接调 finish()
     gateTimer = setTimeout(() => {
         if (!settled) {
             console.log('[数据源] 刷新超过 16s 保险闸，强制降级为内置测试数据。');
@@ -259,7 +300,7 @@ async function refreshMatchData(opts = {}) {
     }, REFRESH_GATE_TIMEOUT_MS);
 
     try {
-        // 进入拉取态：徽标如实呈现「加载中…」（降级横幅是否保留由结果决定）
+        // 进入拉取态：徽标呈现「加载中…」
         dataSourceState = 'loading';
         renderDataSourceUI();
 
@@ -269,6 +310,7 @@ async function refreshMatchData(opts = {}) {
             if (cached && Array.isArray(cached.list) && cached.list.length > 0 &&
                 (Date.now() - cached.t) < MATCH_CACHE_TTL) {
                 if (!silent) console.log(`[数据源] ${MATCH_CACHE_TTL / 1000}s 节流窗口内，复用缓存实时数据 (${cached.list.length}场)。`);
+                await ensureMinSpin();
                 finish(true, cached.list, cached.t); // 走同一闸门收尾（ts 由缓存决定）
                 return;
             }
@@ -277,6 +319,7 @@ async function refreshMatchData(opts = {}) {
         // 双通道网络拉取（每通道自带 ~10s 硬超时；即便悬挂，16s 保险闸也会兜底强制收尾）
         const list = await fetchMatches();
 
+        await ensureMinSpin();
         // 能走到这里说明 fetchMatches 已收敛；统一交闸门结算
         if (list && list.length > 0) {
             finish(true, list);
@@ -284,8 +327,59 @@ async function refreshMatchData(opts = {}) {
             finish(false, null);
         }
     } catch (e) {
-        // 兜底：任何未预期异常也绝不允许 refreshInFlight / 状态滞留在 loading —— 交闸门按失败结算
+        // 兜底：任何未预期异常也绝不允许 refreshInFlight / 状态滞留在 loading
         console.log('[数据源] 刷新过程异常:', e && e.message ? e.message : e);
+        await ensureMinSpin();
         finish(false, null);
     }
 }
+
+// ======================= 竞彩官方赛事数据分析接口 =======================
+const matchAnalysisCache = new Map();
+
+/**
+ * 获取单场比赛官方对阵分析数据（概况、历史交锋、近期战绩）
+ * @param {string|number} matchId 比赛 ID (sportteryMatchId)
+ * @returns {Promise<{head: Object, history: Object, recent: Object}|null>}
+ */
+async function fetchMatchAnalysis(matchId) {
+    if (!matchId) return null;
+    const midStr = String(matchId).trim();
+    if (matchAnalysisCache.has(midStr)) {
+        return matchAnalysisCache.get(midStr);
+    }
+
+    const headUrl = `https://webapi.sporttery.cn/gateway/uniform/football/getMatchHeadV1.qry?source=web&sportteryMatchId=${midStr}`;
+    const histUrl = `https://webapi.sporttery.cn/gateway/uniform/football/getResultHistoryV1.qry?termLimits=6&sportteryMatchId=${midStr}`;
+    const resultUrl = `https://webapi.sporttery.cn/gateway/uniform/football/getMatchResultV1.qry?sportteryMatchId=${midStr}`;
+
+    const fetchJson = async (url) => {
+        try {
+            const resp = await fetch(url, { cache: 'no-cache' });
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            return data && data.errorCode === '0' ? data.value : null;
+        } catch (e) {
+            console.warn('[赛事分析] 拉取接口失败:', url, e);
+            return null;
+        }
+    };
+
+    try {
+        const [head, history, recent] = await Promise.all([
+            fetchJson(headUrl),
+            fetchJson(histUrl),
+            fetchJson(resultUrl)
+        ]);
+
+        const result = { head, history, recent };
+        if (head || history || recent) {
+            matchAnalysisCache.set(midStr, result);
+        }
+        return result;
+    } catch (e) {
+        console.error('[赛事分析] 组合拉取异常:', e);
+        return null;
+    }
+}
+

@@ -115,6 +115,13 @@ function saveCurrentPlan() {
     const matchNum = (numInput ? numInput.value : '').trim();
     const title = `${matchNum || '自定义'} · ${stratName}`;
 
+    const legs = (typeof readShareLegs === 'function') ? readShareLegs() : [];
+    const synthTxt = document.getElementById('resSynthSp') ? document.getElementById('resSynthSp').innerText : '';
+    const breakEvenTxt = document.getElementById('resBreakEvenTag') ? document.getElementById('resBreakEvenTag').innerText : '';
+    const covTypeTxt = document.getElementById('resCoverageType') ? document.getElementById('resCoverageType').innerText : '';
+    const roiSummaryTxt = document.getElementById('planRoiSummary') ? document.getElementById('planRoiSummary').innerText : '';
+    const probSumTxt = document.getElementById('resProbSum') ? document.getElementById('resProbSum').innerText : '';
+
     const plan = {
         id: Date.now(),
         savedAt: Date.now(),
@@ -124,12 +131,18 @@ function saveCurrentPlan() {
         away: away,
         spHda: spInput ? spInput.value : '',
         presetKey: presetKey || (typeof currentActivePreset !== 'undefined' ? currentActivePreset : ''),
-        allocMode: typeof currentAllocMode !== 'undefined' ? currentAllocMode : 'dutched',
+        allocMode: typeof currentAllocMode !== 'undefined' ? currentAllocMode : 'attack_defense',
         budget: budgetInput ? (parseFloat(budgetInput.value) || 100) : 100,
         selected: validSelected,
         odds: odds,
         totalCost: costEl ? (parseFloat(String(costEl.textContent).replace('¥', '')) || 0) : 0,
-        totalUnits: unitsEl ? (parseInt(unitsEl.textContent, 10) || 0) : 0
+        totalUnits: unitsEl ? (parseInt(unitsEl.textContent, 10) || 0) : 0,
+        synthSp: synthTxt,
+        breakEvenText: breakEvenTxt,
+        coverageType: covTypeTxt,
+        roiSummary: roiSummaryTxt,
+        probSummary: probSumTxt,
+        legs: legs
     };
 
     all.unshift(plan); // 最新收藏放最前
@@ -139,6 +152,74 @@ function saveCurrentPlan() {
 }
 
 // ======================= 我的方案弹窗 =======================
+
+// 渲染单个收藏方案的详细出票表格 HTML
+function renderPlanDetailsHtml(plan) {
+    let rowsHtml = '';
+    if (Array.isArray(plan.legs) && plan.legs.length > 0) {
+        rowsHtml = plan.legs.map(leg => {
+            const tag = leg.isDef ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">次选保底</span>'
+                : (leg.isAtt ? '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">核心主攻</span>' : '');
+            const roiText = leg.roi !== null ? `${leg.roi >= 0 ? '+' : ''}${Number(leg.roi).toFixed(1)}%` : '--';
+            const roiColor = (leg.roi !== null && leg.roi >= 0) ? 'text-emerald-400' : 'text-amber-400';
+            return `
+                <tr class="border-b border-slate-800/80 text-slate-300">
+                    <td class="py-1.5 font-bold font-mono text-white flex items-center gap-1">
+                        <span>${esc(leg.name)}</span>
+                        ${tag}
+                    </td>
+                    <td class="py-1.5 text-right font-mono">${leg.odds !== null ? Number(leg.odds).toFixed(2) : '--'}</td>
+                    <td class="py-1.5 text-right font-mono font-bold text-white">${esc(String(leg.units || 0))} 注</td>
+                    <td class="py-1.5 text-right font-mono text-slate-400">¥${esc(String(leg.cost || 0))}</td>
+                    <td class="py-1.5 text-right font-mono text-white">¥${leg.payout !== null ? Number(leg.payout).toFixed(2) : '--'}</td>
+                    <td class="py-1.5 text-right font-mono font-bold ${roiColor}">${roiText}</td>
+                </tr>
+            `;
+        }).join('');
+    } else if (Array.isArray(plan.selected)) {
+        rowsHtml = plan.selected.map(k => {
+            const name = (typeof OUTCOMES_META !== 'undefined' && OUTCOMES_META[k]) ? OUTCOMES_META[k].name : k;
+            const odds = (plan.odds && plan.odds[k]) ? plan.odds[k] : '--';
+            return `
+                <tr class="border-b border-slate-800/80 text-slate-300">
+                    <td class="py-1.5 font-bold font-mono text-white">${esc(name)}</td>
+                    <td class="py-1.5 text-right font-mono">${odds}</td>
+                    <td class="py-1.5 text-right font-mono text-slate-500" colspan="4">（点击载入到测算台重算各注详情）</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    return `
+        <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] space-y-2">
+            <div class="flex flex-wrap items-center justify-between text-slate-400 border-b border-slate-800 pb-1.5 gap-1">
+                <span>对阵: <strong class="text-white">${esc(plan.matchNum || '自定义')}</strong> ${esc(plan.home || '')} vs ${esc(plan.away || '')}</span>
+                <span>模式: <strong class="text-emerald-400">${esc(plan.allocMode === 'attack_defense' ? '最优梯度配资' : '纯利润平衡')}</strong></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left font-mono">
+                    <thead>
+                        <tr class="text-slate-500 border-b border-slate-800/80 text-[10px]">
+                            <th class="pb-1 font-medium">玩法</th>
+                            <th class="pb-1 text-right font-medium">SP</th>
+                            <th class="pb-1 text-right font-medium">买入</th>
+                            <th class="pb-1 text-right font-medium">金额</th>
+                            <th class="pb-1 text-right font-medium">命中返</th>
+                            <th class="pb-1 text-right font-medium">盈亏率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex flex-wrap items-center justify-between pt-1 text-slate-400 border-t border-slate-800/80 text-[10px]">
+                <span>共 ${esc(String(plan.totalUnits || 0))} 注 · 总投入 ¥${esc(Number(plan.totalCost || 0).toFixed(0))}</span>
+                <span class="text-emerald-400 font-bold">${esc(plan.roiSummary ? '命中任一: ' + plan.roiSummary : '')}</span>
+            </div>
+        </div>
+    `;
+}
 
 // 打开 / 关闭「我的方案」弹窗（打开前刷新列表）
 function togglePlansModal() {
@@ -167,44 +248,83 @@ function renderPlansList() {
 
     plans.forEach(plan => {
         const item = document.createElement('div');
-        item.className = 'flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 hover:border-emerald-500/30 transition';
+        item.className = 'flex flex-col gap-2 p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 hover:border-emerald-500/30 transition';
         item.innerHTML = `
-            <div class="min-w-0 flex-1">
-                <div class="font-bold text-white text-xs truncate">📋 ${esc(plan.title || '未命名方案')}</div>
-                <div class="text-[11px] text-slate-500 mt-0.5 font-mono">
-                    收藏于 ${esc(plansTimeShort(plan.savedAt))} · 预算 ¥${esc(String(plan.budget || 0))}
-                    <span class="text-slate-400">/</span> ${esc(Array.isArray(plan.selected) ? plan.selected.length : 0)}项
-                    <span class="text-slate-400">/</span> 总投 ¥${esc(Number(plan.totalCost || 0).toFixed(0))}
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                    <div class="font-bold text-white text-xs truncate">📋 ${esc(plan.title || '未命名方案')}</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5 font-mono">
+                        ${esc(plan.home && plan.away ? plan.home + ' vs ' + plan.away + ' · ' : '')}
+                        预算 ¥${esc(String(plan.budget || 0))} · ${esc(Array.isArray(plan.selected) ? plan.selected.length : 0)}项
+                        · 总投 ¥${esc(Number(plan.totalCost || 0).toFixed(0))}
+                        <span class="text-slate-500">(${esc(plan.allocMode === 'attack_defense' ? '最优梯度' : '纯利润平衡')})</span>
+                    </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-1.5 flex-wrap">
+                    <button type="button" data-plan-action="toggle-details" data-plan-id="${esc(String(plan.id))}"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500 text-sky-300 hover:text-white border border-sky-500/30 transition text-[11px] font-semibold active:scale-95">
+                        🔍 详情
+                    </button>
+                    <button type="button" data-plan-action="share" data-plan-id="${esc(String(plan.id))}"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-white border border-cyan-500/30 transition text-[11px] font-semibold active:scale-95">
+                        📤 分享
+                    </button>
+                    <button type="button" data-plan-action="load" data-plan-id="${esc(String(plan.id))}"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-[11px] font-semibold active:scale-95">
+                        ⚡ 载入
+                    </button>
+                    <button type="button" data-plan-action="delete" data-plan-id="${esc(String(plan.id))}"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-300 border border-red-500/30 transition text-[11px] font-semibold active:scale-95">
+                        🗑️ 删除
+                    </button>
                 </div>
             </div>
-            <div class="flex shrink-0 gap-1.5">
-                <button type="button" data-plan-action="load" data-plan-id="${esc(String(plan.id))}"
-                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-[11px] font-semibold active:scale-95">
-                    ⚡ 载入
-                </button>
-                <button type="button" data-plan-action="delete" data-plan-id="${esc(String(plan.id))}"
-                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-300 border border-red-500/30 transition text-[11px] font-semibold active:scale-95">
-                    🗑️ 删除
-                </button>
+            <!-- 方案各注详情展开容器 -->
+            <div id="plan_details_${esc(String(plan.id))}" class="hidden pt-2 border-t border-slate-700/60">
+                ${renderPlanDetailsHtml(plan)}
             </div>
         `;
         listEl.appendChild(item);
     });
 }
 
-// 事件委托：我的方案列表「载入 / 删除」（沿用 data-action + data-plan-id，避免内联拼接）
+// 事件委托：我的方案列表「详情 / 分享 / 载入 / 删除」
 document.addEventListener('click', (e) => {
     const btn = e.target && e.target.closest ? e.target.closest('[data-plan-action]') : null;
     if (!btn) return;
     const id = btn.getAttribute('data-plan-id');
     const action = btn.getAttribute('data-plan-action');
     if (!id) return;
-    if (action === 'load') {
+
+    if (action === 'toggle-details') {
+        const detailEl = document.getElementById('plan_details_' + id);
+        if (detailEl) {
+            const isHidden = detailEl.classList.contains('hidden');
+            detailEl.classList.toggle('hidden', !isHidden);
+            btn.innerHTML = isHidden ? '🔼 收起' : '🔍 详情';
+        }
+    } else if (action === 'share') {
+        plansShareById(id);
+    } else if (action === 'load') {
         plansLoadById(id);
     } else if (action === 'delete') {
         plansDeleteById(id);
     }
 });
+
+// 分享指定已收藏方案：载入并呼出分享弹窗
+function plansShareById(id) {
+    const plan = planReadAll().find(p => String(p.id) === String(id));
+    if (!plan) {
+        showToast('方案不存在', 'error');
+        return;
+    }
+    plansLoadById(id, true); // 静默载入到工作台
+    togglePlansModal();      // 关闭我的方案弹窗
+    setTimeout(() => {
+        toggleShareModal();  // 呼出分享弹窗，显示该方案的出票清单与卡片
+    }, 150);
+}
 
 // ======================= 删除收藏 =======================
 
@@ -217,7 +337,7 @@ function plansDeleteById(id) {
 
 // ======================= 载入方案恢复到测算台 =======================
 
-function plansLoadById(id) {
+function plansLoadById(id, silent) {
     const plan = planReadAll().find(p => String(p.id) === String(id));
     if (!plan) {
         showToast('方案不存在或已被删除', 'error');
@@ -287,12 +407,6 @@ function plansLoadById(id) {
         calculate();
     }
 
-    // 5. 更新已载入场次标签
-    const matchTag = document.getElementById('currentLoadedMatchTag');
-    if (matchTag) {
-        const t = `${plan.matchNum || ''} ${plan.home || ''} vs ${plan.away || ''}`.trim();
-        matchTag.innerText = t || '自定义输入';
-    }
 
     // 6. 移动端切回测算台 + 平滑滚动聚焦
     if (window.innerWidth < 768 && typeof switchMobileTab === 'function') {
@@ -305,6 +419,8 @@ function plansLoadById(id) {
         setTimeout(() => calcSec.classList.remove('glass-card-active'), 1500);
     }
 
-    togglePlansModal(); // 载入成功后关闭弹窗
-    showToast(`已载入方案：${plan.title || ''}`);
+    if (!silent) {
+        togglePlansModal(); // 载入成功后关闭弹窗
+        showToast(`已载入方案：${plan.title || ''}`);
+    }
 }

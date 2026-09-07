@@ -20,6 +20,11 @@ const SPLIT_TARGET_DIRS = {
 const REC_FLOOR_SHRINK = -8.0;
 const REC_TOP_N = 3;
 
+// 拆单推荐模式与阈值参数
+let currentRecMode = 'steady'; // 'steady' (高胜率稳胆) | 'shrink' (极低折损)
+const REC_STEADY_MIN_SYNTH = 1.05;  // 稳胆合成单关 SP 收益下限（确保盈利）
+const REC_STEADY_MAX_SHRINK = -8.5; // 稳胆折损率容忍下限
+
 // ======================= P2-a 折损率筛选与四档色阶 =======================
 
 // 「适合拆单」筛选下限：折损率 ≥ -8% 即排除红色「折损较高」档（与底部图例 / 最优推荐 REC_FLOOR 对齐）
@@ -82,16 +87,16 @@ function debounce(fn, wait) {
     };
 }
 
-// 轻提示 Toast（收藏 / 删除 / 上限等操作反馈，2.6s 自动消失）
+// 轻提示 Toast（操作反馈，2.6s 自动消失；PC 端单行不换行，移动端自适应换行）
 function showToast(msg, type) {
     const toast = document.createElement('div');
     const isErr = type === 'error';
-    toast.className = 'fixed left-1/2 -translate-x-1/2 bottom-8 z-[70] px-4 py-2 rounded-xl text-xs font-bold shadow-2xl border pointer-events-none ' +
+    toast.className = 'fixed left-1/2 -translate-x-1/2 bottom-8 z-[70] px-4 py-2.5 rounded-xl text-xs font-bold shadow-2xl border pointer-events-none text-center ' +
+        'whitespace-normal sm:whitespace-nowrap max-w-[90vw] sm:max-w-none ' +
         (isErr
             ? 'bg-red-500/20 text-red-200 border-red-500/40'
             : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40');
     toast.style.backdropFilter = 'blur(8px)';
-    toast.style.maxWidth = 'min(92vw, 420px)';
     toast.innerText = msg;
     document.body.appendChild(toast);
     setTimeout(() => { toast.style.transition = 'opacity .3s'; toast.style.opacity = '0'; }, 2300);
@@ -301,8 +306,13 @@ function renderMatchList() {
                         <div class="font-bold text-white font-mono">${esc(m.match_num_str)}</div>
                         <div class="text-[11px] text-slate-400">${esc(m.league_name)}</div>
                     </td>
-                    <td class="py-3 px-3 whitespace-nowrap">
-                        <div class="font-bold text-white">${esc(m.home_team)} <span class="text-slate-500 font-normal">vs</span> ${esc(m.away_team)}</div>
+                    <td class="py-3 px-3 whitespace-nowrap cursor-pointer group" data-analysis-id="${loadId}" title="点击查看对阵数据分析">
+                        <div class="font-bold text-white group-hover:text-emerald-300 transition flex items-center gap-1.5">
+                            <span>${esc(m.home_team)}</span>
+                            <span class="text-slate-500 font-normal">vs</span>
+                            <span>${esc(m.away_team)}</span>
+                            <span class="text-[10px] opacity-0 group-hover:opacity-100 text-blue-400 font-normal transition">⚽</span>
+                        </div>
                     </td>
                     <td class="py-3 px-3 text-center font-mono text-slate-400 whitespace-nowrap">
                         ${esc((m.match_date || '').slice(5))} ${esc(m.match_time)}${startedBadge}
@@ -324,10 +334,15 @@ function renderMatchList() {
                             ${m._curShrinkage >= 0 ? '+' : ''}${m._curShrinkage.toFixed(2)}%
                         </span>
                     </td>
-                    <td class="py-3 px-3 text-center whitespace-nowrap min-w-[100px]">
-                        <button type="button" data-load-id="${loadId}" class="inline-flex items-center justify-center whitespace-nowrap px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-xs font-semibold active:scale-95 shadow-sm">
-                            ⚡ 载入测算
-                        </button>
+                    <td class="py-3 px-3 text-center whitespace-nowrap min-w-[130px]">
+                        <div class="inline-flex items-center space-x-1.5">
+                            <button type="button" data-analysis-id="${loadId}" class="inline-flex items-center justify-center whitespace-nowrap px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-white border border-blue-500/30 transition text-xs font-semibold active:scale-95 shadow-sm" title="查看竞彩网官方赛事对阵与历史交锋">
+                                ⚽ 分析
+                            </button>
+                            <button type="button" data-load-id="${loadId}" class="inline-flex items-center justify-center whitespace-nowrap px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-xs font-semibold active:scale-95 shadow-sm" title="载入此场赔率到顶部测算台">
+                                ⚡ 测算
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -404,7 +419,7 @@ function renderMatchList() {
                         </div>
                     </div>
 
-                    <!-- 合成单关与折损率 + 一键载入 -->
+                    <!-- 合成单关与折损率 + 一键载入与分析 -->
                     <div class="flex items-center justify-between pt-1">
                         <div class="flex items-center space-x-2">
                             <div>
@@ -415,10 +430,16 @@ function renderMatchList() {
                                 ${m._curShrinkage >= 0 ? '+' : ''}${m._curShrinkage.toFixed(2)}%
                             </span>
                         </div>
-                        <button type="button" data-load-id="${loadId}" class="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-semibold active:scale-95 transition shadow-sm flex items-center gap-1">
-                            <span>⚡</span>
-                            <span>载入测算</span>
-                        </button>
+                        <div class="flex items-center space-x-1.5">
+                            <button type="button" data-analysis-id="${loadId}" class="px-2.5 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-white border border-blue-500/30 text-xs font-semibold active:scale-95 transition shadow-sm flex items-center gap-1">
+                                <span>⚽</span>
+                                <span>分析</span>
+                            </button>
+                            <button type="button" data-load-id="${loadId}" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-semibold active:scale-95 transition shadow-sm flex items-center gap-1">
+                                <span>⚡</span>
+                                <span>载入测算</span>
+                            </button>
+                        </div>
                     </div>
                 `;
                 cardsContainer.appendChild(card);
@@ -457,10 +478,6 @@ function loadMatchToCalc(m) {
     if (m.hafu_ad) document.getElementById('odds_ad').value = m.hafu_ad;
     if (m.hafu_aa) document.getElementById('odds_aa').value = m.hafu_aa;
 
-    const matchTag = document.getElementById('currentLoadedMatchTag');
-    if (matchTag) {
-        matchTag.innerText = `${m.match_num_str || ''} ${m.home_team} vs ${m.away_team}`;
-    }
 
     // 联动当前选定的拆单方向自动激活对应预设
     if (currentListTarget === 'd') {
@@ -487,17 +504,39 @@ function loadMatchToCalc(m) {
     }
 }
 
-// ======================= 🔥 最优拆单推荐 (一键推荐最合适拆单模式) =======================
+// ======================= 🔥 精选拆单推荐 (一键推荐最合适拆单模式) =======================
 
-// 计算单场在「全场主胜 / 平局 / 客胜」三个方向中的最优拆解（返回 null 表示无方向可拆或已开赛）
-function analyzeBestSplitForMatch(m) {
+// 切换推荐模式：'steady'(高胜率稳胆) | 'shrink'(极低折损)
+function setRecMode(mode) {
+    currentRecMode = mode;
+    const btnSteady = document.getElementById('recModeSteady');
+    const btnShrink = document.getElementById('recModeShrink');
+    if (btnSteady && btnShrink) {
+        if (mode === 'steady') {
+            btnSteady.className = 'px-2.5 py-1 rounded text-xs font-bold transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
+            btnShrink.className = 'px-2.5 py-1 rounded text-xs font-medium transition text-slate-300 hover:text-white bg-slate-800/80 whitespace-nowrap';
+        } else {
+            btnSteady.className = 'px-2.5 py-1 rounded text-xs font-medium transition text-slate-300 hover:text-white bg-slate-800/80 whitespace-nowrap';
+            btnShrink.className = 'px-2.5 py-1 rounded text-xs font-bold transition bg-emerald-500 text-white shadow-sm whitespace-nowrap';
+        }
+    }
+    renderOptimalRecs();
+}
+
+// 计算单场在指定模式下的最优拆解（返回 null 表示无方向可拆或已开赛）
+// mode: 'steady' (稳胆模式：仅测算主胜与客胜强队，找低折合赔率且有正收益场次)
+//       'shrink' (极低折损模式：测算全方向，找折损率最小场次)
+function analyzeBestSplitForMatch(m, mode = 'steady') {
     if (!m) return null;
     // 已开赛的比赛不再推荐（此时已无法下单）
     const kickoffTs = matchKickoffTs(m);
     if (kickoffTs !== null && kickoffTs <= Date.now()) return null;
 
     let best = null;
-    Object.keys(SPLIT_TARGET_DIRS).forEach(dirKey => {
+    // 稳胆模式仅推荐主胜 'h' 或客胜 'a'，排除高波动平局
+    const targetDirs = mode === 'steady' ? ['h', 'a'] : Object.keys(SPLIT_TARGET_DIRS);
+
+    targetDirs.forEach(dirKey => {
         const meta = SPLIT_TARGET_DIRS[dirKey];
         const officialSp = m[meta.officialKey] || 0;
         const odds = meta.outcomeKeys.map(k => m['hafu_' + k] || 0);
@@ -506,26 +545,47 @@ function analyzeBestSplitForMatch(m) {
 
         const invSum = odds.reduce((acc, o) => acc + (1.0 / o), 0);
         const synthSp = invSum > 0 ? (1.0 / invSum) : 0;
-        // 折损率 = (合成单关SP - 官方SP) / 官方SP，越接近正数越划算
+        // 折损率 = (合成单关SP - 官方SP) / 官方SP
         const shrink = ((synthSp - officialSp) / officialSp) * 100;
 
-        if (!best || shrink > best.shrink) {
-            best = {
-                dir: dirKey,
-                label: meta.label,
-                presetKey: meta.preset,
-                officialSp: officialSp,
-                synthSp: synthSp,
-                shrink: shrink,
-                outcomeKeys: meta.outcomeKeys.slice(),
-                odds: odds
-            };
+        if (mode === 'steady') {
+            // 稳胆门槛：必须保证正收益空间 (synthSp >= 1.05)，且折损在合理容忍范围内 (shrink >= -8.5%)
+            if (synthSp < REC_STEADY_MIN_SYNTH) return;
+            if (shrink < REC_STEADY_MAX_SHRINK) return;
+            // 稳胆优选：折合赔率最低者（概率最高最稳），同赔率下选折损更优
+            if (!best || synthSp < best.synthSp || (Math.abs(synthSp - best.synthSp) < 0.0001 && shrink > best.shrink)) {
+                best = {
+                    dir: dirKey,
+                    label: meta.label,
+                    presetKey: meta.preset,
+                    officialSp: officialSp,
+                    synthSp: synthSp,
+                    shrink: shrink,
+                    outcomeKeys: meta.outcomeKeys.slice(),
+                    odds: odds
+                };
+            }
+        } else {
+            // 极低折损模式：要求合成 SP > 1.0 且折损不过高
+            if (synthSp <= 1.0 || shrink < REC_FLOOR_SHRINK) return;
+            if (!best || shrink > best.shrink) {
+                best = {
+                    dir: dirKey,
+                    label: meta.label,
+                    presetKey: meta.preset,
+                    officialSp: officialSp,
+                    synthSp: synthSp,
+                    shrink: shrink,
+                    outcomeKeys: meta.outcomeKeys.slice(),
+                    odds: odds
+                };
+            }
         }
     });
     return best;
 }
 
-// 渲染「最优拆单推荐」卡片区（随 renderMatchList 一并重绘，实时数据刷新后自动更新）
+// 渲染「精选拆单推荐」卡片区（随 renderMatchList 一并重绘，实时数据刷新后自动更新）
 function renderOptimalRecs() {
     const container = document.getElementById('optimalRecContainer');
     const badge = document.getElementById('recBadgeCount');
@@ -535,13 +595,30 @@ function renderOptimalRecs() {
     const candidates = [];
     (Array.isArray(matchesData) ? matchesData : []).forEach(m => {
         if (m.single_had !== 0) return;
-        const best = analyzeBestSplitForMatch(m);
-        if (!best || best.shrink < REC_FLOOR_SHRINK) return; // 折损过高不推荐
+        const best = analyzeBestSplitForMatch(m, currentRecMode);
+        if (!best) return;
         candidates.push({ match: m, best: best });
     });
 
-    // 按折损率从优到劣排序，取最优 Top 3
-    candidates.sort((a, b) => b.best.shrink - a.best.shrink);
+    // 排序逻辑：
+    // - 稳胆模式：按合成单关 SP 从低到高（最稳/概率最高），次级按折损率从优到劣
+    // - 折损模式：按折损率从优到劣（差价最小），次级按合成单关 SP 从低到高
+    if (currentRecMode === 'steady') {
+        candidates.sort((a, b) => {
+            if (Math.abs(a.best.synthSp - b.best.synthSp) > 0.0001) {
+                return a.best.synthSp - b.best.synthSp;
+            }
+            return b.best.shrink - a.best.shrink;
+        });
+    } else {
+        candidates.sort((a, b) => {
+            if (Math.abs(a.best.shrink - b.best.shrink) > 0.01) {
+                return b.best.shrink - a.best.shrink;
+            }
+            return a.best.synthSp - b.best.synthSp;
+        });
+    }
+
     const top = candidates.slice(0, REC_TOP_N);
 
     if (badge) {
@@ -553,8 +630,8 @@ function renderOptimalRecs() {
         container.innerHTML = `
             <div class="md:col-span-3 py-8 text-center rounded-xl border border-dashed border-slate-700/70 bg-slate-900/30">
                 <div class="text-2xl mb-1.5">🛋️</div>
-                <div class="text-slate-300 font-semibold text-sm">暂无适合拆单的场次</div>
-                <div class="text-[11px] text-slate-500 mt-1">可点击右上角「刷新数据」后再来看看</div>
+                <div class="text-slate-300 font-semibold text-sm">暂无符合条件的拆单场次</div>
+                <div class="text-[11px] text-slate-500 mt-1">可切换上方模式或点击右上角「刷新数据」</div>
             </div>`;
         return;
     }
@@ -577,6 +654,7 @@ function renderOptimalRecs() {
 
         // 组合展示文案：如「胜胜 17.5 / 平胜 23.0 / 负胜 65.0」
         const comboText = b.outcomeKeys.map((k, i) => `${OUTCOMES_META[k].name} ${b.odds[i]}`).join(' / ');
+        const modeTitle = currentRecMode === 'steady' ? '🎯 稳胆拆法' : '📉 优选拆法';
 
         const card = document.createElement('div');
         card.className = 'rounded-xl glass-card border border-white/10 p-3.5 flex flex-col gap-2.5 relative overflow-hidden rec-card';
@@ -605,7 +683,7 @@ function renderOptimalRecs() {
             <!-- 推荐拆法 -->
             <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-2 relative">
                 <div class="flex items-center justify-between gap-1">
-                    <span class="text-[10px] text-emerald-300 font-black tracking-wide">🎯 最优拆法 · ${esc(b.label)}</span>
+                    <span class="text-[10px] text-emerald-300 font-black tracking-wide">${modeTitle} · ${esc(b.label)}</span>
                     <span class="text-[10px] text-slate-400 font-mono shrink-0">3项全包</span>
                 </div>
                 <div class="font-mono text-[11px] text-slate-300 mt-1.5 leading-relaxed">${esc(comboText)}</div>
@@ -651,19 +729,41 @@ function applyRecommendedSplit(m, dir) {
     setAllocationMode('dutched'); // 填入推荐预算分配模式：等额对冲（Equal Profit）
 }
 
-// 全局事件委托：榜单「载入测算」按钮 → 依据 data-load-id 查注册表取比赛对象（彻底移除 onclick 内联 JSON）
+// 全局事件委托：榜单「载入测算」与「比赛分析」按钮
 document.addEventListener('click', (e) => {
     const btn = e.target && e.target.closest ? e.target.closest('[data-load-id]') : null;
-    if (!btn) return;
-    const match = matchLoadRegistry.get(Number(btn.getAttribute('data-load-id')));
-    if (match) loadMatchToCalc(match);
+    if (btn) {
+        const match = matchLoadRegistry.get(Number(btn.getAttribute('data-load-id')));
+        if (match) loadMatchToCalc(match);
+        return;
+    }
+    const analysisBtn = e.target && e.target.closest ? e.target.closest('[data-analysis-id]') : null;
+    if (analysisBtn) {
+        const match = matchLoadRegistry.get(Number(analysisBtn.getAttribute('data-analysis-id')));
+        if (match) openMatchAnalysisModal(match);
+        return;
+    }
 });
 
-// 切换原理弹窗
+// 切换原理弹窗（打开时自动调用 KaTeX 渲染 $${}$$ 与 $...$ 公式）
 function toggleExplainModal() {
     const modal = document.getElementById('explainModal');
     if (modal) {
+        const willOpen = modal.classList.contains('hidden');
         modal.classList.toggle('hidden');
+        if (willOpen && typeof renderMathInElement === 'function') {
+            try {
+                renderMathInElement(modal, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false }
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                console.warn('KaTeX render error:', e);
+            }
+        }
     }
 }
 
@@ -749,6 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shrinkFilterEl = document.getElementById('selectShrinkFilter');
     if (shrinkFilterEl) shrinkFilterEl.addEventListener('change', renderMatchList);
 
+    initTheme();
     handleResize();
     renderMatchList();
     calculate();
@@ -761,4 +862,341 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) autoRefreshTick();
     });
+
+    // 监听 ESC 键关闭赛事分析弹窗及赞赏弹窗
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeMatchAnalysisModal();
+            closeDonateModal();
+        }
+    });
+
+    // 点击弹窗背景遮罩关闭
+    const analysisModal = document.getElementById('matchAnalysisModal');
+    if (analysisModal) {
+        analysisModal.addEventListener('click', (e) => {
+            if (e.target === analysisModal) {
+                closeMatchAnalysisModal();
+            }
+        });
+    }
+
+    const donateModal = document.getElementById('donateModal');
+    if (donateModal) {
+        donateModal.addEventListener('click', (e) => {
+            if (e.target === donateModal) {
+                closeDonateModal();
+            }
+        });
+    }
 });
+
+// ======================= 请我喝杯咖啡（赞赏支持）弹窗逻辑 =======================
+
+function openDonateModal() {
+    const modal = document.getElementById('donateModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeDonateModal() {
+    const modal = document.getElementById('donateModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function switchDonateChannel(channel) {
+    const tabWechat = document.getElementById('donateTabWechat');
+    const tabAlipay = document.getElementById('donateTabAlipay');
+    const cardWechat = document.getElementById('donateCardWechat');
+    const cardAlipay = document.getElementById('donateCardAlipay');
+
+    if (!tabWechat || !tabAlipay || !cardWechat || !cardAlipay) return;
+
+    if (channel === 'alipay') {
+        tabWechat.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 border border-transparent cursor-pointer active:scale-95';
+        tabAlipay.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all bg-[#1677FF]/15 text-[#1677FF] border border-[#1677FF]/40 shadow-sm cursor-pointer active:scale-95';
+        cardWechat.classList.add('hidden');
+        cardAlipay.classList.remove('hidden');
+    } else {
+        tabWechat.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all bg-[#07C160]/15 text-[#07C160] border border-[#07C160]/40 shadow-sm cursor-pointer active:scale-95';
+        tabAlipay.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 border border-transparent cursor-pointer active:scale-95';
+        cardWechat.classList.remove('hidden');
+        cardAlipay.classList.add('hidden');
+    }
+}
+
+// ======================= 明暗主题切换逻辑 (Theme Light / Dark) =======================
+
+function initTheme() {
+    let savedTheme = 'dark';
+    try {
+        // 优先读取用户显式偏好设置；若首次进入，则默认呈现暗黑科技模式 (Dark Mode)
+        const v2Theme = localStorage.getItem('htft_theme_v2');
+        if (v2Theme) {
+            savedTheme = v2Theme;
+        } else {
+            savedTheme = 'dark';
+        }
+    } catch (e) {
+        savedTheme = 'dark';
+    }
+    applyTheme(savedTheme, false);
+}
+
+function applyTheme(theme, persist = true) {
+    const isLight = theme === 'light';
+    if (isLight) {
+        document.documentElement.classList.add('theme-light');
+    } else {
+        document.documentElement.classList.remove('theme-light');
+    }
+
+    const iconEl = document.getElementById('themeToggleIcon');
+    const btnEl = document.getElementById('themeToggleBtn');
+
+    if (iconEl) iconEl.textContent = isLight ? '🌙' : '☀️';
+    if (btnEl) btnEl.title = isLight ? '当前为浅色主题，点击切换为深色' : '当前为深色主题，点击切换为浅色';
+
+    if (persist) {
+        try {
+            const val = isLight ? 'light' : 'dark';
+            localStorage.setItem('htft_theme_v2', val);
+            localStorage.setItem('htft_theme', val);
+        } catch (e) {}
+    }
+}
+
+function toggleTheme() {
+    const currentIsLight = document.documentElement.classList.contains('theme-light');
+    const nextTheme = currentIsLight ? 'dark' : 'light';
+    applyTheme(nextTheme, true);
+    if (typeof showToast === 'function') {
+        showToast(nextTheme === 'light' ? '☀️ 已切换至浅色明亮模式' : '🌙 已切换至深色暗黑模式');
+    }
+}
+
+// ======================= 竞彩官方赛事数据分析弹窗逻辑 =======================
+
+let currentAnalysisMatch = null;
+
+function closeMatchAnalysisModal() {
+    const modal = document.getElementById('matchAnalysisModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function openMatchAnalysisModal(m) {
+    if (!m) return;
+    currentAnalysisMatch = m;
+    const modal = document.getElementById('matchAnalysisModal');
+    if (!modal) return;
+
+    modal.classList.remove('hidden');
+
+    // 1. 设置基础头信息
+    const titleEl = document.getElementById('analysisModalTitle');
+    const leagueEl = document.getElementById('analysisLeagueBadge');
+    const timeEl = document.getElementById('analysisMatchTime');
+    const homeNameEl = document.getElementById('analysisHomeName');
+    const awayNameEl = document.getElementById('analysisAwayName');
+    const homeLogoEl = document.getElementById('analysisHomeLogo');
+    const awayLogoEl = document.getElementById('analysisAwayLogo');
+    const spHEl = document.getElementById('analysisSpH');
+    const spDEl = document.getElementById('analysisSpD');
+    const spAEl = document.getElementById('analysisSpA');
+    const singleBadgeEl = document.getElementById('analysisSingleBadge');
+    const officialLinkEl = document.getElementById('analysisOfficialLink');
+
+    if (titleEl) titleEl.textContent = `${m.match_num_str} 对阵数据分析`;
+    if (leagueEl) leagueEl.textContent = m.league_name || '竞彩赛事';
+    if (timeEl) timeEl.textContent = `比赛时间：${m.match_date || ''} ${m.match_time || ''}`;
+    if (homeNameEl) homeNameEl.textContent = m.home_team || '主队';
+    if (awayNameEl) awayNameEl.textContent = m.away_team || '客队';
+    if (homeLogoEl) homeLogoEl.src = 'https://static.sporttery.cn/res_1_0/jcw/images/fotBasbal_match/icon_zd.png';
+    if (awayLogoEl) awayLogoEl.src = 'https://static.sporttery.cn/res_1_0/jcw/images/fotBasbal_match/icon_kd.png';
+
+    if (spHEl) spHEl.textContent = m.sp_h ? m.sp_h.toFixed(2) : '--';
+    if (spDEl) spDEl.textContent = m.sp_d ? m.sp_d.toFixed(2) : '--';
+    if (spAEl) spAEl.textContent = m.sp_a ? m.sp_a.toFixed(2) : '--';
+
+    if (singleBadgeEl) {
+        if (m.single_had === 1) {
+            singleBadgeEl.className = 'text-[10px] px-2 py-0.5 rounded font-semibold bg-red-500/20 text-red-300 border border-red-500/30';
+            singleBadgeEl.textContent = '已开胜平负单关';
+        } else {
+            singleBadgeEl.className = 'text-[10px] px-2 py-0.5 rounded font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            singleBadgeEl.textContent = '未开单关·适合半全场拆单';
+        }
+    }
+
+    if (officialLinkEl) {
+        officialLinkEl.href = `https://www.sporttery.cn/jc/zqdz/index.html?showType=2&mid=${m.match_id}`;
+    }
+
+    // 绑定载入测算台按钮
+    const btnLoad = document.getElementById('analysisBtnLoadToCalc');
+    const btnLoadM = document.getElementById('analysisBtnLoadToCalcMobile');
+    const doLoad = () => {
+        loadMatchToCalc(m);
+        closeMatchAnalysisModal();
+    };
+    if (btnLoad) btnLoad.onclick = doLoad;
+    if (btnLoadM) btnLoadM.onclick = doLoad;
+
+    // 显示骨架屏加载动画
+    const loadingEl = document.getElementById('analysisLoading');
+    const contentEl = document.getElementById('analysisContent');
+    const errorEl = document.getElementById('analysisError');
+    if (loadingEl) loadingEl.classList.remove('hidden');
+    if (contentEl) contentEl.classList.add('hidden');
+    if (errorEl) errorEl.classList.add('hidden');
+
+    try {
+        const data = await fetchMatchAnalysis(m.match_id);
+        if (!data || (!data.head && !data.history && !data.recent)) {
+            if (loadingEl) loadingEl.classList.add('hidden');
+            if (errorEl) errorEl.classList.remove('hidden');
+            return;
+        }
+
+        const head = data.head || {};
+        const history = data.history || {};
+        const recent = data.recent || {};
+
+        // 渲染徽标与排名
+        if (head.homeTeamLogoPath && homeLogoEl) homeLogoEl.src = head.homeTeamLogoPath;
+        if (head.awayTeamLogoPath && awayLogoEl) awayLogoEl.src = head.awayTeamLogoPath;
+
+        const homeRankEl = document.getElementById('analysisHomeRank');
+        const awayRankEl = document.getElementById('analysisAwayRank');
+        const homeRank = head.wbsjStats?.home?.ranking;
+        const awayRank = head.wbsjStats?.away?.ranking;
+        if (homeRankEl) homeRankEl.textContent = homeRank ? `排名: 第${homeRank}名` : '排名: --';
+        if (awayRankEl) awayRankEl.textContent = awayRank ? `排名: 第${awayRank}名` : '排名: --';
+
+        // 渲染交锋历史
+        const histStats = history.statistics || {};
+        const histMatches = Array.isArray(history.matchList) ? history.matchList : [];
+        const winCnt = Number(histStats.winGoalMatchCnt || 0);
+        const drawCnt = Number(histStats.drawMatchCnt || 0);
+        const lossCnt = Number(histStats.lossGoalMatchCnt || 0);
+        const totalH2H = winCnt + drawCnt + lossCnt || histMatches.length || 1;
+
+        const winPct = Math.round((winCnt / totalH2H) * 100);
+        const drawPct = Math.round((drawCnt / totalH2H) * 100);
+        const lossPct = Math.max(0, 100 - winPct - drawPct);
+
+        const h2hSummaryEl = document.getElementById('analysisH2HSummary');
+        if (h2hSummaryEl) {
+            h2hSummaryEl.innerHTML = `(主队 <span class="text-emerald-400 font-bold">${winCnt}胜</span> <span class="text-blue-400 font-bold">${drawCnt}平</span> <span class="text-purple-400 font-bold">${lossCnt}负</span>)`;
+        }
+
+        const barWin = document.getElementById('analysisH2HBarWin');
+        const barDraw = document.getElementById('analysisH2HBarDraw');
+        const barLoss = document.getElementById('analysisH2HBarLoss');
+        if (barWin) { barWin.style.width = `${winPct}%`; barWin.title = `主胜 ${winCnt}场 (${winPct}%)`; }
+        if (barDraw) { barDraw.style.width = `${drawPct}%`; barDraw.title = `平局 ${drawCnt}场 (${drawPct}%)`; }
+        if (barLoss) { barLoss.style.width = `${lossPct}%`; barLoss.title = `主负 ${lossCnt}场 (${lossPct}%)`; }
+
+        const h2hTable = document.getElementById('analysisH2HTableBody');
+        if (h2hTable) {
+            h2hTable.innerHTML = '';
+            if (histMatches.length === 0) {
+                h2hTable.innerHTML = `<tr><td colspan="6" class="py-3 text-center text-slate-500">两队近期暂无直接交锋记录</td></tr>`;
+            } else {
+                histMatches.slice(0, 6).forEach(hm => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-800/30 transition';
+                    const winTeam = hm.winningTeam; // 'home' | 'away' | 'draw'
+                    let outcomeBadge = '<span class="text-slate-400">平</span>';
+                    if (winTeam === 'home') outcomeBadge = '<span class="text-emerald-400 font-bold">胜</span>';
+                    else if (winTeam === 'away') outcomeBadge = '<span class="text-purple-400 font-bold">负</span>';
+
+                    tr.innerHTML = `
+                        <td class="py-1.5 text-slate-400">${esc((hm.matchDate || '').slice(2))} <span class="text-slate-500">${esc(hm.tournamentShortName || '')}</span></td>
+                        <td class="py-1.5 text-center text-white">${esc(hm.homeTeamShortName || '')}</td>
+                        <td class="py-1.5 text-center font-bold text-amber-400">${esc(hm.fullCourtGoal || '--')}</td>
+                        <td class="py-1.5 text-center text-slate-400">(${esc(hm.halfTimeGoal || '--')})</td>
+                        <td class="py-1.5 text-center text-white">${esc(hm.awayTeamShortName || '')}</td>
+                        <td class="py-1.5 text-right">${outcomeBadge}</td>
+                    `;
+                    h2hTable.appendChild(tr);
+                });
+            }
+        }
+
+        // 渲染主客队近期表现
+        const homeRecent = recent.home || {};
+        const awayRecent = recent.away || {};
+
+        const renderTeamRecent = (teamData, titleElId, winRateElId, statsElId, listElId, defaultName) => {
+            const teamTitle = document.getElementById(titleElId);
+            const winRateEl = document.getElementById(winRateElId);
+            const statsEl = document.getElementById(statsElId);
+            const listEl = document.getElementById(listElId);
+
+            const st = teamData.statistics || {};
+            const matches = Array.isArray(teamData.matchList) ? teamData.matchList : [];
+
+            if (teamTitle) teamTitle.textContent = `${st.teamShortName || defaultName} 近况`;
+            if (winRateEl) winRateEl.textContent = `胜率: ${st.winProbability || '--'}`;
+
+            if (statsEl) {
+                const total = st.totalLegCnt || matches.length || 0;
+                const w = st.winGoalMatchCnt || 0;
+                const d = st.drawMatchCnt || 0;
+                const l = st.lossGoalMatchCnt || 0;
+                const goals = st.goalCnt ?? '--';
+                const lossGoals = st.lossGoalCnt ?? '--';
+                statsEl.innerHTML = `
+                    <span>近${total}场: <b class="text-emerald-400">${w}胜</b> <b class="text-blue-400">${d}平</b> <b class="text-purple-400">${l}负</b></span>
+                    <span>进${goals}/失${lossGoals}</span>
+                `;
+            }
+
+            if (listEl) {
+                listEl.innerHTML = '';
+                if (matches.length === 0) {
+                    listEl.innerHTML = `<div class="py-2 text-center text-slate-500">暂无近况战绩数据</div>`;
+                } else {
+                    matches.slice(0, 5).forEach(rm => {
+                        const row = document.createElement('div');
+                        row.className = 'flex items-center justify-between py-1 border-b border-slate-800/40 last:border-0';
+                        const isHome = (rm.homeTeamShortName === (st.teamShortName || defaultName));
+                        const opp = isHome ? rm.awayTeamShortName : rm.homeTeamShortName;
+                        const score = rm.fullCourtGoal || '--';
+                        let resBadge = '<span class="px-1 py-0.5 rounded bg-slate-800 text-slate-400">平</span>';
+                        if (rm.winningTeam === 'home') {
+                            resBadge = isHome
+                                ? '<span class="px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300">胜</span>'
+                                : '<span class="px-1 py-0.5 rounded bg-purple-500/20 text-purple-300">负</span>';
+                        } else if (rm.winningTeam === 'away') {
+                            resBadge = isHome
+                                ? '<span class="px-1 py-0.5 rounded bg-purple-500/20 text-purple-300">负</span>'
+                                : '<span class="px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300">胜</span>';
+                        }
+                        row.innerHTML = `
+                            <span class="text-slate-400">${esc((rm.matchDate || '').slice(5))} ${esc(rm.tournamentShortName || '')}</span>
+                            <span class="text-slate-300 truncate max-w-[90px]">${isHome ? '主' : '客'}vs ${esc(opp || '')}</span>
+                            <span class="font-bold text-white">${esc(score)}</span>
+                            ${resBadge}
+                        `;
+                        listEl.appendChild(row);
+                    });
+                }
+            }
+        };
+
+        renderTeamRecent(homeRecent, 'analysisHomeRecentTitle', 'analysisHomeWinRate', 'analysisHomeRecentStats', 'analysisHomeRecentList', m.home_team);
+        renderTeamRecent(awayRecent, 'analysisAwayRecentTitle', 'analysisAwayWinRate', 'analysisAwayRecentStats', 'analysisAwayRecentList', m.away_team);
+
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (contentEl) contentEl.classList.remove('hidden');
+    } catch (e) {
+        console.error('[赛事分析] 渲染失败:', e);
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (errorEl) errorEl.classList.remove('hidden');
+    }
+}

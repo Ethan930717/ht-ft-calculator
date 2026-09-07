@@ -1,8 +1,14 @@
-# ⚽ 竞彩半全场实战配资计算器 (HT/FT Calculator)
+# ⚽ 半全场实战配资计算器 (HT/FT Calculator)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/)
-[![Pure Frontend](https://img.shields.io/badge/Stack-Pure%20HTML%20%2B%20Tailwind-blue.svg)](./index.html)
+<p align="center">
+  <img src="./img/logo.svg" width="130" height="130" alt="HT/FT Calculator Logo" />
+</p>
+
+<p align="center">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
+  <a href="./index.html"><img src="https://img.shields.io/badge/Stack-Pure%20HTML%20%2B%20Tailwind-blue.svg" alt="Pure Frontend" /></a>
+</p>
 
 > **基于荷兰式配资（Dutching）数学原理与竞彩半全场赔率矩阵的策略建模与实战配资工具。**  
 > 帮助购彩者在未开胜平负单关的赛事中，科学、精算地拆单合成“人造单关”，或构建 6 组赛果防守策略，实现风险最小化与收益平衡。
@@ -29,10 +35,9 @@
   - **锁定半场平局**：全包【平胜、平平、平负】3 项；
   - **主队不败防守**：全包【胜胜、平胜、负胜、胜平、平平、负平】6 项，极限对冲；
   - **半场不败防守**：全包【胜胜、胜平、胜负、平胜、平平、平负】6 项。
-- 🧮 **三种专业配资模式**：
-  - **纯利润平衡（Equal Profit）**：无论打出被选赛果中的哪一个，净收益金额完全一致；
-  - **保本微利（Capital Preservation）**：防守赛果保本，主力赛果拿满超额盈余；
-  - **原始赔率加权（Odds Weighted）**：按隐含概率线性分配。
+- 🧮 **双核专业配资模式**：
+  - **最优梯度配资（Gradient Optimization，推荐）**：次选防守赛果保底回本，主力胜果独享超额暴击利润；
+  - **纯利润平衡（Equal Profit / Dutching）**：无论打出被选赛果中的哪一个，净收益金额完全一致。
 - 📊 **合成 SP 与官方折损率实时研判**：
   - 毫秒级计算人工单关合成 SP：$S_{synth} = \frac{1}{\sum \frac{1}{O_i}}$；
   - 对比直接购买胜平负 SP，直观呈现折损率百分比，辅助筛选出“最适合拆单”的黄金赛事。
@@ -41,6 +46,10 @@
   - 支持按“最适合拆单（折损率最低）”智能降序排列；
   - 提供“不显示胜平负已开单关的比赛”筛选，专注挖掘无单关赛事的价值；
   - 支持一键将整场比赛所有盘口参数载入上方工作台。
+- 🎨 **明暗双主题自由切换（Dark / Light Mode）**：
+  - 默认暗黑科技拟态风（Dark），沉浸专业；
+  - 顶部导航栏支持一键平滑切换至明亮浅色风（Light），清爽高对比度；
+  - 本地自动持久化记忆偏好设置，防白屏闪烁。
 - 💻 **零构建 · 多端开箱即用**：
   - **浏览器**：直接双击 `index.html` 即可运行；
   - **静态托管**：可一键部署至 GitHub Pages、Vercel、Cloudflare Pages（已提供在线版）；
@@ -96,27 +105,57 @@ npm run serve
 # 浏览器访问 http://localhost:3000
 ```
 
+### 方式 D：Windows 独立桌面客户端 (x64 / x86 便携免安装版)
+每次向仓库提交代码，GitHub Actions 会自动编译打包出 Windows 独立桌面端：
+- **`半全场实战配资计算器-x64.exe`** (适配 64 位 Windows 10/11)
+- **`半全场实战配资计算器-x86.exe`** (适配 32 位 Windows 系统)
+
+双击直接弹窗运行，内置暗黑拟态独立视窗，并彻底解除网络跨域限制。可直接在仓库的 **Actions 页面构建产物 (Artifacts)** 或 **Releases** 标签下载。
+
 ---
 
 ## 📁 目录结构
 
 ```text
 ht-ft-calculator/
-├── index.html              # 核心应用：纯前端单文件版本 (HTML5 + Tailwind CDN + 原生 JS，直连竞彩网 API)
+├── .github/
+│   └── workflows/
+│       └── build-exe.yml   # GitHub Actions 自动化编译打包 Windows x64/x86 客户端
+├── index.html              # 核心应用：纯前端界面 (HTML5 + Tailwind + 原生 JS)
+├── main.js                 # Electron 桌面客户端原生窗口入口
 ├── css/
 │   └── style.css           # 自定义样式（覆盖/补充 Tailwind）
 ├── js/
 │   ├── calculator.js       # 配资核心算法（Dutching 配额 / 合成 SP / 折损率）
-│   ├── app.js              # 界面交互与工作台逻辑
+│   ├── app.js              # 界面交互、排行榜与赛事分析弹窗控制
 │   ├── data.js             # 内置离线在售比赛快照（32场，断网保底）
-│   └── api.js              # 竞彩网在售赛事与赔率接口封装
-├── package.json            # npm 本地预览脚本与元数据
+│   ├── api.js              # 竞彩网在售赛事、精准单关判断与对阵深度数据接口封装
+│   ├── share.js            # 方案清单与竖版分享卡（Canvas 导出与一键复制图片）
+│   └── storage.js          # 本地方案收藏与持久化管理 (localStorage)
+├── img/
+│   ├── logo.svg            # 专属矢量 Logo (足球与计算器科技元素)
+│   ├── logo.png            # 高清栅格化 Logo 图标
+│   ├── alipay_qr.png       # 支付宝收款码
+│   └── wechat_qr.png       # 微信收款码
+├── package.json            # 依赖与 Windows 便携版打包配置
 ├── LICENSE                 # MIT 开源授权协议
 ├── .gitignore              # Git 忽略配置
 ├── README.md               # 项目主说明文档
 └── docs/
     └── strategy_guide.md   # 实战多维变式与人造单关策略白皮书
 ```
+
+---
+
+## ☕ 请我喝杯咖啡 (Buy Me a Coffee)
+
+> **开源不易，如果本项目对您有所帮助，不妨请我喝杯咖啡～ ☕**  
+> 您的每一份鼓励与认可，都是持续维护、优化算法与丰富功能的宝贵动力！
+
+| 微信支付 (WeChat Pay) | 支付宝 (Alipay) |
+| :---: | :---: |
+| <img src="./img/wechat_qr.png" width="220" alt="微信收款码" /> | <img src="./img/alipay_qr.png" width="220" alt="支付宝收款码" /> |
+| **微信扫一扫** | **支付宝扫一扫** |
 
 ---
 

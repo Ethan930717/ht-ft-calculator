@@ -1,11 +1,47 @@
 {
   "name": "ht-ft-calculator",
   "version": "1.0.0",
-  "description": "竞彩半全场「多维变式 & 人造单关」实战配资计算器 (Dutching Synthetic Single Calculator)",
-  "main": "index.html",
+  "description": "半全场实战配资计算器 (Dutching Synthetic Single Calculator)",
+  "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "serve": "npx serve .",
-    "dev": "npx serve ."
+    "dev": "npx serve .",
+    "dist:win": "electron-builder --win --x64 --ia32",
+    "build:win": "electron-builder --win --x64 --ia32"
+  },
+  "build": {
+    "appId": "com.dahu.htftcalc",
+    "productName": "半全场实战配资计算器",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "${productName}-${arch}.${ext}"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "css/**/*",
+      "js/**/*",
+      "img/**/*",
+      "package.json"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1"
   },
   "keywords": [
     "sports-lottery",

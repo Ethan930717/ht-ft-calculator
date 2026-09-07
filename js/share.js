@@ -62,8 +62,12 @@ function readShareLegs() {
         // 空态占位卡（“请勾选…”）不含 SP:，直接跳过
         if (text.indexOf('SP:') === -1) continue;
 
-        const nameEl = card.querySelector('.px-2.py-0.5.rounded.bg-slate-900');
-        const name = nameEl ? (nameEl.textContent || '').trim() : '';
+        // 安全提取玩法名称（使用通用语义类或第一个 span，杜绝 .py-0.5 无效选择器异常）
+        let name = '';
+        const nameEl = card.querySelector('.font-bold.font-mono.text-white') || card.querySelector('span');
+        if (nameEl) {
+            name = (nameEl.textContent || '').trim();
+        }
 
         const mOdds = /SP:\s*([\d.]+)/.exec(text);
         const mUnits = /买入:\s*(\d+)\s*注/.exec(text);
@@ -87,7 +91,7 @@ function readShareLegs() {
             cost: mCost ? parseFloat(mCost[1]) : null,
             payout: mPay ? parseFloat(mPay[1]) : null,
             roi: mRoi ? parseFloat(mRoi[1]) : null,
-            isDef: text.indexOf('防守保本') !== -1,
+            isDef: text.indexOf('防守保本') !== -1 || text.indexOf('次选保底') !== -1 || text.indexOf('保底回本') !== -1,
             isAtt: text.indexOf('核心主攻') !== -1
         });
     }
@@ -161,21 +165,20 @@ function buildShareSnapshot() {
 
 // 当前数据源标签（用于文案/分享图底部）
 function shareDataSourceLabel() {
-    if (typeof dataSourceState === 'undefined') return '';
-    if (dataSourceState === 'live') return '竞彩网实时';
+    if (typeof dataSourceState === 'undefined') return '竞彩网';
+    if (dataSourceState === 'live') return '竞彩网';
     if (dataSourceState === 'snapshot') return '内置测试数据';
     return '加载中';
 }
 
 // 当前配资模式中文名
 function shareAllocLabel() {
-    if (typeof currentAllocMode === 'undefined') return '';
+    if (typeof currentAllocMode === 'undefined') return '最优梯度配资';
     const map = {
-        dutched: '等额对冲 (Equal Profit)',
-        attack_defense: '主攻 + 防守',
-        equal_units: '均注搏冷'
+        attack_defense: '最优梯度配资 (核心主攻 + 次选保底)',
+        dutched: '纯利润平衡 (等额对冲)'
     };
-    return map[currentAllocMode] || '';
+    return map[currentAllocMode] || '最优梯度配资';
 }
 
 // 生成本地时间字符串
@@ -209,7 +212,7 @@ function buildShareText(s) {
     }
     L.push('━━━━━━━━━━━━━━━━━━━━');
     s.legs.forEach(leg => {
-        const tag = leg.isDef ? '[防守保本]' : (leg.isAtt ? '[核心主攻]' : '');
+        const tag = leg.isDef ? '[次选保底]' : (leg.isAtt ? '[核心主攻]' : '');
         const spTxt = leg.odds !== null ? leg.odds.toFixed(2) : '--';
         const unitTxt = leg.units !== null ? `${leg.units} 注` : '--';
         const costTxt = leg.cost !== null ? `¥${leg.cost.toFixed(2)}` : '--';
@@ -415,9 +418,9 @@ function drawShareCanvas(s) {
     ctx.fillStyle = COL.white;
     ctx.fillText(titleText, mx, 140);
 
-    // 副标题：配资模式 + 实体店 2 元整数出票
-    const allocTxt = shareAllocLabel() || '自定义配资';
-    const subTxt = `配资模式：${allocTxt}　·　按实体店 ¥2/注 整数出票`;
+    // 副标题：配资模式 + ¥2/注 整数出票
+    const allocTxt = shareAllocLabel() || '最优梯度配资';
+    const subTxt = `配资模式：${allocTxt}　·　按 ¥2/注 整数出票`;
     const subPx = shareFitPx(ctx, subTxt, W - mx * 2, '500', 15, false, 12);
     ctx.font = shareFont('500', subPx, false);
     ctx.fillStyle = COL.slate400;
@@ -436,16 +439,35 @@ function drawShareCanvas(s) {
     ctx.fillText(numText, mx + 18, matchTop + 36);
     const numW = ctx.measureText(numText).width;
     const leagueTxt = s.match && s.match.league_name ? ('｜ ' + s.match.league_name) : '';
-    const leaguePx = shareFitPx(ctx, leagueTxt, W - mx * 2 - numW - 180, '500', 14, false, 11);
-    ctx.font = shareFont('500', leaguePx, false);
-    ctx.fillStyle = COL.slate400;
-    ctx.fillText(leagueTxt, mx + 18 + numW + 4, matchTop + 36);
 
     if (s.match && s.match.single_had === 0) {
-        shareCenterTag(ctx, '未开单关 · 适合拆单', W - mx - 20, matchTop + 36, 160, COL.green, 'rgba(16,185,129,0.15)');
+        // 右对齐绘制「未开单关」标签，预留 18px 内边距，坚决杜绝溢出卡片右边界
+        const tagW = 138;
+        const tagH = 22;
+        const tagX = (W - mx - 18) - tagW; // 右侧距卡片内边 18px
+        shareFillRound(ctx, tagX, matchTop + 24, tagW, tagH, 11, 'rgba(16,185,129,0.15)');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = COL.green;
+        ctx.font = shareFont('700', 11, false);
+        ctx.fillText('未开单关 · 适合拆单', tagX + tagW / 2, matchTop + 35);
+
+        // 联赛名称文本宽度自适应截断，防止与右侧标签重叠
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        const maxLeagueW = Math.max(60, tagX - (mx + 18 + numW + 12));
+        const leaguePx = shareFitPx(ctx, leagueTxt, maxLeagueW, '500', 14, false, 11);
+        ctx.font = shareFont('500', leaguePx, false);
+        ctx.fillStyle = COL.slate400;
+        ctx.fillText(leagueTxt, mx + 18 + numW + 4, matchTop + 36);
+    } else {
+        const leaguePx = shareFitPx(ctx, leagueTxt, W - mx * 2 - numW - 40, '500', 14, false, 11);
+        ctx.font = shareFont('500', leaguePx, false);
+        ctx.fillStyle = COL.slate400;
+        ctx.fillText(leagueTxt, mx + 18 + numW + 4, matchTop + 36);
     }
 
-    // 还原对齐（shareCenterTag 会改为居中/middle，下排对阵需要左对齐/alphabetic）
+    // 还原对齐
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
 
@@ -568,7 +590,7 @@ function drawShareCanvas(s) {
 
     ctx.textAlign = 'center';
     ctx.font = shareFont('800', 26, true);
-    ctx.fillStyle = COL.white;
+    ctx.fillStyle = (s.synthSp !== null && s.synthSp < 1.0) ? '#f43f5e' : COL.white;
     ctx.fillText(s.synthSp !== null ? s.synthSp.toFixed(4) : '--', W / 2, sTop + 74);
 
     ctx.textAlign = 'right';
@@ -580,7 +602,7 @@ function drawShareCanvas(s) {
     ctx.textAlign = 'left';
     ctx.font = shareFont('500', 13, false);
     ctx.fillStyle = COL.slate400;
-    ctx.fillText(`共 ${s.totalUnits} 注 · 实体店整数出票`, mx + 20, sTop + 106);
+    ctx.fillText(`共 ${s.totalUnits} 注 · ¥2/注 整数出票`, mx + 20, sTop + 106);
 
     ctx.textAlign = 'center';
     if (s.shrink !== null) {
@@ -655,14 +677,73 @@ function bindShareDownload(canvas, fileName) {
     }
 }
 
-// 打开弹窗时刷新文字清单 + 绘制分享图
-function refreshSharePanel() {
-    const snap = buildShareSnapshot();
+// 一键复制分享卡图片到剪贴板（基于 Canvas toBlob + Clipboard API，免去下载保存步骤）
+async function copyShareImage() {
+    const canvas = document.getElementById('shareCanvas');
+    const btn = document.getElementById('btnCopyShareImg');
+    const btnText = document.getElementById('copyImgBtnText');
+    if (!canvas) return;
+
+    if (!navigator.clipboard || typeof ClipboardItem === 'undefined' || !canvas.toBlob) {
+        if (typeof showToast === 'function') {
+            showToast('当前浏览器环境不支持直接复制图片，请点击「下载 PNG」', 'error');
+        }
+        return;
+    }
+
+    const resetBtn = (delay = 2000) => {
+        setTimeout(() => {
+            if (btnText) btnText.textContent = '复制图片';
+            if (btn) btn.disabled = false;
+        }, delay);
+    };
+
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = '生成中…';
+
+    try {
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                if (typeof showToast === 'function') {
+                    showToast('生成图片数据失败，请尝试「下载 PNG」', 'error');
+                }
+                resetBtn(500);
+                return;
+            }
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                if (btnText) btnText.textContent = '✅ 已复制';
+                if (typeof showToast === 'function') {
+                    showToast('✅ 分享卡已复制到剪贴板，可直接粘贴 (Ctrl+V) 发送');
+                }
+                resetBtn(2200);
+            } catch (clipErr) {
+                console.warn('Clipboard write failed:', clipErr);
+                if (typeof showToast === 'function') {
+                    showToast('剪贴板未获授权或不受支持，请直接点击「下载 PNG」', 'error');
+                }
+                resetBtn(500);
+            }
+        }, 'image/png');
+    } catch (e) {
+        console.warn('copyShareImage error:', e);
+        if (typeof showToast === 'function') {
+            showToast('复制图片失败，请点击「下载 PNG」', 'error');
+        }
+        resetBtn(500);
+    }
+}
+
+// 打开弹窗时刷新文字清单 + 绘制分享图（支持传入指定快照，如收藏方案）
+function refreshSharePanel(customSnap) {
+    const snap = customSnap || buildShareSnapshot();
     const emptyMsg = document.getElementById('shareEmptyMsg');
     const textPane = document.getElementById('shareTextPane');
     const imgPane = document.getElementById('shareImgPane');
 
-    const hasPlan = snap.legs.length > 0;
+    const hasPlan = snap && Array.isArray(snap.legs) && snap.legs.length > 0;
     if (emptyMsg) emptyMsg.classList.toggle('hidden', hasPlan);
     if (textPane) textPane.classList.toggle('hidden', !hasPlan);
     if (imgPane) imgPane.classList.toggle('hidden', !hasPlan);
@@ -673,17 +754,27 @@ function refreshSharePanel() {
     if (pre) pre.textContent = buildShareText(snap);
 
     // 分享图
-    const canvas = drawShareCanvas(snap);
-    bindShareDownload(canvas, shareFileName(snap));
+    try {
+        const canvas = drawShareCanvas(snap);
+        if (canvas) {
+            bindShareDownload(canvas, shareFileName(snap));
+        }
+    } catch (e) {
+        console.warn('Canvas share drawing failed:', e);
+    }
 }
 
-// 弹窗开关
-function toggleShareModal() {
+// 弹窗开关（全流程 try-catch 容错，确保弹窗正常展开与关闭）
+function toggleShareModal(customSnap) {
     const modal = document.getElementById('shareModal');
     if (!modal) return;
     const willOpen = modal.classList.contains('hidden');
     if (willOpen) {
-        refreshSharePanel();
+        try {
+            refreshSharePanel(customSnap);
+        } catch (e) {
+            console.error('refreshSharePanel error:', e);
+        }
         modal.classList.remove('hidden');
     } else {
         modal.classList.add('hidden');

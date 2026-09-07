@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- 背景渐变 -->
+    <radialGradient id="bgGrad" cx="30%" cy="20%" r="90%">
+      <stop offset="0%" stop-color="#131e33"/>
+      <stop offset="60%" stop-color="#0b111e"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </radialGradient>
+
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#06b6d4" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <!-- 计算器外壳渐变 -->
+    <linearGradient id="calcBody" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#24324a"/>
+      <stop offset="50%" stop-color="#172236"/>
+      <stop offset="100%" stop-color="#0e1626"/>
+    </linearGradient>
+
+    <!-- 计算器屏幕渐变 -->
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#02281e"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+
+    <!-- 足球球体渐变 -->
+    <radialGradient id="ballShade" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#f1f5f9"/>
+      <stop offset="85%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </radialGradient>
+
+    <!-- 足球深色块渐变 -->
+    <linearGradient id="patchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+
+    <!-- 辉光滤镜 -->
+    <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <filter id="ballShadow" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="-8" dy="14" stdDeviation="16" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+  </defs>
+
+  <!-- 图标背景圆角矩形 -->
+  <rect x="20" y="20" width="472" height="472" rx="100" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="3" filter="url(#cardShadow)"/>
+
+  <!-- 背景科技感装饰：球场弧线与微光雷达网格 -->
+  <g opacity="0.12" stroke="#10b981" stroke-width="1.5" fill="none">
+    <circle cx="256" cy="256" r="180" stroke-dasharray="6 6"/>
+    <circle cx="256" cy="256" r="120"/>
+    <line x1="20" y1="256" x2="492" y2="256"/>
+    <line x1="256" y1="20" x2="256" y2="492"/>
+    <path d="M190 20 A 100 100 0 0 0 322 20"/>
+    <path d="M190 492 A 100 100 0 0 1 322 492"/>
+  </g>
+
+  <!-- 计算器主体 (略微偏左倾，透视立体感) -->
+  <g filter="url(#cardShadow)">
+    <!-- 计算器外壳 -->
+    <rect x="75" y="90" width="225" height="332" rx="26" fill="url(#calcBody)" stroke="#384968" stroke-width="2.5"/>
+    
+    <!-- 顶栏微光点 -->
+    <circle cx="98" cy="112" r="3.5" fill="#f43f5e" opacity="0.8"/>
+    <circle cx="112" cy="112" r="3.5" fill="#f59e0b" opacity="0.8"/>
+    <circle cx="126" cy="112" r="3.5" fill="#10b981" opacity="0.8"/>
+
+    <!-- 液晶显示屏 (LCD Screen) -->
+    <rect x="94" y="128" width="187" height="66" rx="12" fill="url(#screenGrad)" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.4"/>
+    
+    <!-- 屏幕内容：赔率与数学公式 -->
+    <text x="106" y="148" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600" fill="#34d399" opacity="0.8" letter-spacing="1">HT/FT DUTCHING</text>
+    <text x="268" y="178" font-family="'Courier New', Courier, monospace, monospace" font-size="22" font-weight="900" fill="#a7f3d0" text-anchor="end" filter="url(#emeraldGlow)">8.6203</text>
+
+    <!-- 按键网格 (4行 x 3列) -->
+    <g transform="translate(94, 210)">
+      <!-- Row 1 -->
+      <rect x="0" y="0" width="55" height="38" rx="8" fill="#1e2c42" stroke="#2d405e" stroke-width="1"/>
+      <text x="27.5" y="24" font-family="sans-serif" font-size="12" font-weight="bold" fill="#f59e0b" text-anchor="middle">AC</text>
+
+      <rect x="66" y="0" width="55" height="38" rx="8" fill="#1e2c42" stroke="#2d405e" stroke-width="1"/>
+      <text x="93.5" y="24" font-family="sans-serif" font-size="12" font-weight="bold" fill="#06b6d4" text-anchor="middle">SP</text>
+
+      <rect x="132" y="0" width="55" height="38" rx="8" fill="#1e2c42" stroke="#2d405e" stroke-width="1"/>
+      <text x="159.5" y="24" font-family="sans-serif" font-size="14" font-weight="bold" fill="#06b6d4" text-anchor="middle">÷</text>
+
+      <!-- Row 2 -->
+      <rect x="0" y="48" width="55" height="38" rx="8" fill="#162234" stroke="#25354e" stroke-width="1"/>
+      <text x="27.5" y="72" font-family="sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">7</text>
+
+      <rect x="66" y="48" width="55" height="38" rx="8" fill="#162234" stroke="#25354e" stroke-width="1"/>
+      <text x="93.5" y="72" font-family="sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">8</text>
+
+      <rect x="132" y="48" width="55" height="38" rx="8" fill="#1e2c42" stroke="#2d405e" stroke-width="1"/>
+      <text x="159.5" y="72" font-family="sans-serif" font-size="14" font-weight="bold" fill="#06b6d4" text-anchor="middle">×</text>
+
+      <!-- Row 3 -->
+      <rect x="0" y="96" width="55" height="38" rx="8" fill="#162234" stroke="#25354e" stroke-width="1"/>
+      <text x="27.5" y="120" font-family="sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">4</text>
+
+      <rect x="66" y="96" width="55" height="38" rx="8" fill="#162234" stroke="#25354e" stroke-width="1"/>
+      <text x="93.5" y="120" font-family="sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">5</text>
+
+      <rect x="132" y="96" width="55" height="38" rx="8" fill="#1e2c42" stroke="#2d405e" stroke-width="1"/>
+      <text x="159.5" y="120" font-family="sans-serif" font-size="14" font-weight="bold" fill="#06b6d4" text-anchor="middle">-</text>
+
+      <!-- Row 4 -->
+      <rect x="0" y="144" width="55" height="38" rx="8" fill="#162234" stroke="#25354e" stroke-width="1"/>
+      <text x="27.5" y="168" font-family="sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">1</text>
+
+      <rect x="66" y="144" width="55" height="38" rx="8" fill="#162234" stroke="#25354e" stroke-width="1"/>
+      <text x="93.5" y="168" font-family="sans-serif" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="middle">2</text>
+
+      <!-- 高亮等于号 (Emerald = ) -->
+      <rect x="132" y="144" width="55" height="38" rx="8" fill="url(#screenGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#emeraldGlow)"/>
+      <text x="159.5" y="169" font-family="sans-serif" font-size="16" font-weight="900" fill="#ffffff" text-anchor="middle">=</text>
+    </g>
+  </g>
+
+  <!-- 科技光晕弧线：连接计算器与足球 -->
+  <path d="M 270 145 C 360 120, 440 200, 395 315 C 360 410, 230 435, 175 390" 
+        fill="none" stroke="url(#borderGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="140 10 30 10" opacity="0.8"/>
+  <circle cx="395" cy="315" r="4" fill="#34d399" filter="url(#emeraldGlow)"/>
+  <circle cx="270" cy="145" r="3" fill="#06b6d4" filter="url(#emeraldGlow)"/>
+
+  <!-- 足球 (Soccer Ball) 位于右下前方，极具动感与层次 -->
+  <g filter="url(#ballShadow)">
+    <!-- 足球球体外圆 (半径 105) -->
+    <circle cx="338" cy="288" r="105" fill="url(#ballShade)" stroke="#0f172a" stroke-width="2"/>
+
+    <!-- 剪裁蒙版：使内部多边形完美契合球体 -->
+    <g clip-path="url(#ballClip)">
+      <clipPath id="ballClip">
+        <circle cx="338" cy="288" r="104"/>
+      </clipPath>
+
+      <!-- 中心经典黑五边形 -->
+      <polygon points="338,248 376,275 361,320 315,320 300,275" fill="url(#patchGrad)"/>
+
+      <!-- 缝合线连接到周围 -->
+      <!-- 中心顶角到上方十二边形交点 -->
+      <line x1="338" y1="248" x2="338" y2="204" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 右上角 -->
+      <line x1="376" y1="275" x2="418" y2="262" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 右下角 -->
+      <line x1="361" y1="320" x2="389" y2="358" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 左下角 -->
+      <line x1="315" y1="320" x2="287" y2="358" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 左上角 -->
+      <line x1="300" y1="275" x2="258" y2="262" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- 外围周边五边形/六边形切块 -->
+      <!-- 上方色块 -->
+      <polygon points="318,184 358,184 372,204 338,204 304,204" fill="url(#patchGrad)"/>
+      <line x1="318" y1="184" x2="285" y2="185" stroke="#475569" stroke-width="2.5"/>
+      <line x1="358" y1="184" x2="391" y2="185" stroke="#475569" stroke-width="2.5"/>
+
+      <!-- 右上色块 -->
+      <polygon points="418,262 444,240 445,285 422,305 408,285" fill="url(#patchGrad)"/>
+      <line x1="444" y1="240" x2="435" y2="215" stroke="#475569" stroke-width="2.5"/>
+      <line x1="422" y1="305" x2="442" y2="340" stroke="#475569" stroke-width="2.5"/>
+
+      <!-- 右下色块 -->
+      <polygon points="389,358 375,395 340,392 348,368 375,348" fill="url(#patchGrad)"/>
+      <line x1="375" y1="395" x2="388" y2="420" stroke="#475569" stroke-width="2.5"/>
+      <line x1="340" y1="392" x2="320" y2="415" stroke="#475569" stroke-width="2.5"/>
+
+      <!-- 左下色块 -->
+      <polygon points="287,358 301,348 328,368 336,392 301,395" fill="url(#patchGrad)"/>
+      <line x1="301" y1="395" x2="288" y2="420" stroke="#475569" stroke-width="2.5"/>
+
+      <!-- 左上色块 -->
+      <polygon points="258,262 268,285 254,305 231,285 232,240" fill="url(#patchGrad)"/>
+      <line x1="232" y1="240" x2="241" y2="215" stroke="#475569" stroke-width="2.5"/>
+      <line x1="254" y1="305" x2="234" y2="340" stroke="#475569" stroke-width="2.5"/>
+
+      <!-- 足球 3D 弧面微光 -->
+      <path d="M 255 240 A 90 90 0 0 1 370 205" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.4" filter="url(#emeraldGlow)"/>
+      <!-- 球体边缘暗角投影 -->
+      <circle cx="338" cy="288" r="103" fill="none" stroke="#0f172a" stroke-width="6" opacity="0.35"/>
+    </g>
+  </g>
+
+  <!-- 动态微粒与能量点 -->
+  <circle cx="160" cy="75" r="3" fill="#10b981" opacity="0.7"/>
+  <circle cx="445" cy="180" r="2.5" fill="#38bdf8" opacity="0.8"/>
+  <circle cx="420" cy="425" r="3" fill="#34d399" opacity="0.7"/>
+  <circle cx="85" cy="445" r="2" fill="#06b6d4" opacity="0.6"/>
+</svg>

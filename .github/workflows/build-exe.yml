@@ -1,0 +1,65 @@
+name: 自动打包 Windows 客户端 (x64 & x86)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: 打包 Windows x64 与 x86 (ia32) 单文件 EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 环境 (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 安装项目依赖
+        run: npm install
+
+      - name: 执行打包 (生成 x64 与 ia32 免安装便携版 EXE)
+        run: npm run dist:win
+
+      - name: 生成带 x86 命名的二进制副本 (兼容命名习惯)
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/*ia32.exe | ForEach-Object {
+              $x86Name = $_.Name -replace 'ia32', 'x86'
+              Copy-Item $_.FullName (Join-Path $_.DirectoryName $x86Name)
+              Write-Host "已同步生成: $x86Name"
+          }
+          Get-ChildItem dist/*.exe | Select-Object Name, Length
+
+      - name: 上传构建产物 (在每次提交的 Actions 运行页面可直接下载)
+        uses: actions/upload-artifact@v4
+        with:
+          name: 半全场实战配资计算器-Windows客户端(x64与x86)
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 自动发布到 GitHub Release (仅限推送 v* 版本标签时触发)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

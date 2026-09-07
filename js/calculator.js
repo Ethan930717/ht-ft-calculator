@@ -22,54 +22,54 @@ const STRATEGY_PRESETS = {
         name: '全场主胜 (3项)',
         desc: '覆盖全场主队获胜的全部半场走势，主胜100%有且仅有1张中奖（物理守恒）',
         outcomes: ['hh', 'dh', 'ah'],
-        attack: ['hh', 'dh', 'ah'],
-        defense: []
+        attack: ['hh', 'dh'],
+        defense: ['ah']
     },
     'ft_draw': {
         name: '全场平局 (3项)',
         desc: '覆盖全场双方打平的全部半场走势，打平100%有且仅有1张中奖（物理守恒）',
         outcomes: ['hd', 'dd', 'ad'],
-        attack: ['hd', 'dd', 'ad'],
-        defense: []
+        attack: ['hd', 'dd'],
+        defense: ['ad']
     },
     'ft_away': {
         name: '全场客胜 (3项)',
         desc: '覆盖全场客队获胜的全部半场走势，客胜100%有且仅有1张中奖（物理守恒）',
         outcomes: ['ha', 'da', 'aa'],
-        attack: ['ha', 'da', 'aa'],
-        defense: []
+        attack: ['da', 'aa'],
+        defense: ['ha']
     },
     'ht_draw': {
         name: '锁定半场平 (3项)',
         desc: '锁定上半场打平 (0-0/1-1)，全包其后胜平负走势，只要半场打平100%中奖！',
         outcomes: ['dh', 'dd', 'da'],
-        attack: ['dh', 'dd', 'da'],
-        defense: []
+        attack: ['dh', 'dd'],
+        defense: ['da']
     },
     'ht_home': {
         name: '锁定半场主领先 (3项)',
         desc: '锁定上半场主队打进第一球/半场领先，全包全场胜平负，半场主胜100%中奖！',
         outcomes: ['hh', 'hd', 'ha'],
-        attack: ['hh', 'hd', 'ha'],
-        defense: []
+        attack: ['hh'],
+        defense: ['hd', 'ha']
     },
     'ht_away': {
         name: '锁定半场客领先 (3项)',
         desc: '锁定上半场客队半场领先，全包全场胜平负，半场客胜100%中奖！',
         outcomes: ['ah', 'ad', 'aa'],
-        attack: ['ah', 'ad', 'aa'],
-        defense: []
+        attack: ['aa'],
+        defense: ['ah', 'ad']
     },
     'double_home_draw': {
         name: '主队不败 (胜+平 6项)',
-        desc: '主胜或打平均中奖！只要客队不赢即可稳妥兑奖；支持“主攻胜+防守平保本”防冷！',
+        desc: '主胜或打平均中奖！只要客队不赢即可稳妥兑奖；支持“主攻胜+次选平保底”防冷！',
         outcomes: ['hh', 'dh', 'ah', 'hd', 'dd', 'ad'],
         attack: ['hh', 'dh', 'ah'],
         defense: ['hd', 'dd', 'ad']
     },
     'double_away_draw': {
         name: '客队不败 (平+负 6项)',
-        desc: '客胜或打平均中奖！只要主队不赢即可兑奖；支持“主攻客胜+防守平保本”！',
+        desc: '客胜或打平均中奖！只要主队不赢即可兑奖；支持“主攻客胜+次选平保底”！',
         outcomes: ['hd', 'dd', 'ad', 'ha', 'da', 'aa'],
         attack: ['ha', 'da', 'aa'],
         defense: ['hd', 'dd', 'ad']
@@ -91,23 +91,20 @@ const STRATEGY_PRESETS = {
 };
 
 let currentActivePreset = 'ft_home';
-let currentAllocMode = 'dutched'; // 'dutched' | 'attack_defense' | 'equal_units'
+let currentAllocMode = 'attack_defense'; // 默认主推：最优梯度配资 (核心主攻 + 次选保底)
 
-// 设置配资模式 (等额对冲 vs 攻守兼备 vs 均注)
+// 设置配资模式 (最优梯度配资 vs 纯利润平衡)
 function setAllocationMode(mode) {
-    currentAllocMode = mode;
+    currentAllocMode = mode === 'dutched' ? 'dutched' : 'attack_defense';
     const btnD = document.getElementById('allocBtnDutched');
     const btnA = document.getElementById('allocBtnAttack');
-    const btnE = document.getElementById('allocBtnEqual');
 
-    if (btnD && btnA && btnE) {
-        // 用 classList 只切换激活态配色，保留 HTML 里的响应式基础类（如 flex-1 sm:flex-initial），
-        // 避免 className= 整体覆盖导致窄屏配资模式按钮丢失等宽布局
-        [btnD, btnA, btnE].forEach(b => {
+    if (btnD && btnA) {
+        [btnD, btnA].forEach(b => {
             b.classList.remove('bg-emerald-500', 'text-white', 'shadow-sm');
             b.classList.add('text-slate-400', 'hover:text-white');
         });
-        const activeBtn = mode === 'dutched' ? btnD : (mode === 'attack_defense' ? btnA : btnE);
+        const activeBtn = currentAllocMode === 'attack_defense' ? btnA : btnD;
         if (activeBtn) {
             activeBtn.classList.remove('text-slate-400', 'hover:text-white');
             activeBtn.classList.add('bg-emerald-500', 'text-white', 'shadow-sm');
@@ -115,8 +112,9 @@ function setAllocationMode(mode) {
 
         const hintEl = document.getElementById('planModeHint');
         if (hintEl) {
-            hintEl.innerText = mode === 'dutched' ? '当前：绝对等额对冲 (平滑保底)'
-                : (mode === 'attack_defense' ? '当前：核心主攻 + 防守保本 (阶梯出票)' : '当前：均注搏冷 (1:1等注数)');
+            hintEl.innerText = currentAllocMode === 'attack_defense'
+                ? '当前：最优梯度配资 (核心主攻 + 次选保底)'
+                : '当前：纯利润平衡 (等额对冲 · 平滑收益)';
         }
     }
     calculate();
@@ -131,34 +129,120 @@ function setBudget(amt) {
     calculate();
 }
 
+// 智能识别当前勾选的赛果组合策略与方向（彻底杜绝手动点选时策略预设与研判文本脱节的 Bug）
+function detectActiveStrategy(selectedKeys) {
+    const keys = (selectedKeys || []).slice().sort();
+    const n = keys.length;
+
+    // 1. 在预设库中进行精准集合比对
+    for (const [pk, preset] of Object.entries(STRATEGY_PRESETS)) {
+        const pSorted = preset.outcomes.slice().sort();
+        if (pSorted.length === n && pSorted.every((k, idx) => k === keys[idx])) {
+            let dirWord = '命中赛果';
+            let targetDir = null;
+            if (pk === 'ft_home') { dirWord = '主胜'; targetDir = 'h'; }
+            else if (pk === 'ft_draw') { dirWord = '平局'; targetDir = 'd'; }
+            else if (pk === 'ft_away') { dirWord = '客胜'; targetDir = 'a'; }
+            else if (pk === 'double_home_draw') { dirWord = '主不败'; }
+            else if (pk === 'double_away_draw') { dirWord = '客不败'; }
+            else if (pk === 'double_decisive') { dirWord = '决出胜负'; }
+            else if (pk === 'ht_draw') { dirWord = '半场平'; }
+            else if (pk === 'ht_home') { dirWord = '半场主领先'; }
+            else if (pk === 'ht_away') { dirWord = '半场客领先'; }
+            else if (pk === 'double_ht_home_draw') { dirWord = '半场主不败'; }
+
+            return {
+                presetKey: pk,
+                preset: preset,
+                name: preset.name,
+                desc: preset.desc,
+                directionWord: dirWord,
+                targetDir: targetDir,
+                isFullCover: ['ft_home', 'ft_draw', 'ft_away'].includes(pk),
+                attackKeys: (preset.attack || []).slice(),
+                defenseKeys: (preset.defense || []).slice()
+            };
+        }
+    }
+
+    // 2. 自定义组合识别
+    if (n === 0) {
+        return {
+            presetKey: null,
+            preset: null,
+            name: '未选择赛果',
+            desc: '请在九宫格中勾选至少 1 项赛果',
+            directionWord: '未选择',
+            targetDir: null,
+            isFullCover: false,
+            attackKeys: [],
+            defenseKeys: []
+        };
+    }
+
+    const allEndH = keys.every(k => k.endsWith('h'));
+    const allEndD = keys.every(k => k.endsWith('d'));
+    const allEndA = keys.every(k => k.endsWith('a'));
+
+    const allStartH = keys.every(k => k.startsWith('h'));
+    const allStartD = keys.every(k => k.startsWith('d'));
+    const allStartA = keys.every(k => k.startsWith('a'));
+
+    let dirWord = '组合中奖';
+    let name = `自定义组合 (${n}项)`;
+    let desc = `自由点选 ${n} 项半全场赛果，自由配资对冲`;
+    let targetDir = null;
+
+    if (allEndH) {
+        dirWord = '主胜';
+        name = `主胜优选 (${n}项)`;
+        desc = `精选覆盖主胜走势中的 ${n} 项分支，打出主胜对应赛果即获利`;
+        targetDir = 'h';
+    } else if (allEndA) {
+        dirWord = '客胜';
+        name = `客胜优选 (${n}项)`;
+        desc = `精选覆盖客胜走势中的 ${n} 项分支，打出客胜对应赛果即获利`;
+        targetDir = 'a';
+    } else if (allEndD) {
+        dirWord = '平局';
+        name = `平局优选 (${n}项)`;
+        desc = `精选覆盖平局走势中的 ${n} 项分支，打出平局对应赛果即获利`;
+        targetDir = 'd';
+    } else if (allStartD) {
+        dirWord = '半场平';
+        name = `半场平优选 (${n}项)`;
+        desc = `半场平局打底，覆盖下半场对应演变走势`;
+    } else if (allStartH) {
+        dirWord = '半场主领先';
+        name = `半场主领先优选 (${n}项)`;
+        desc = `半场主领先打底，覆盖下半场对应演变走势`;
+    } else if (allStartA) {
+        dirWord = '半场客领先';
+        name = `半场客领先优选 (${n}项)`;
+        desc = `半场客领先打底，覆盖下半场对应演变走势`;
+    }
+
+    return {
+        presetKey: null,
+        preset: null,
+        name: name,
+        desc: desc,
+        directionWord: dirWord,
+        targetDir: targetDir,
+        isFullCover: false,
+        attackKeys: [],
+        defenseKeys: []
+    };
+}
+
 // 应用策略预设
 function applyPreset(presetKey) {
     currentActivePreset = presetKey;
     const preset = STRATEGY_PRESETS[presetKey];
     if (!preset) return;
 
-    // 更新预设按钮激活态样式
-    Object.keys(STRATEGY_PRESETS).forEach(k => {
-        const btn = document.getElementById(`preset_${k}`);
-        if (btn) {
-            btn.className = (k === presetKey)
-                ? 'px-2.5 py-1 rounded text-xs font-medium transition bg-emerald-500 text-white whitespace-nowrap shadow-sm'
-                : 'px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap';
-        }
-    });
-
-    // 描述更新
-    const descEl = document.getElementById('strategyDescText');
-    if (descEl) {
-        descEl.innerHTML = `
-            <span class="text-emerald-400 font-bold">当前策略: ${preset.name}</span>
-            <span class="text-slate-400 ml-1.5">${preset.desc}</span>
-        `;
-    }
-
     // 同步勾选九宫格
     syncOutcomeCheckboxes(preset.outcomes);
-
     calculate();
 }
 
@@ -227,14 +311,46 @@ function calculate() {
     const selBadge = document.getElementById('selectedCountBadge');
     if (selBadge) selBadge.innerText = `已选 ${selected.length} 项`;
 
+    // 智能识别当前策略预设与赛果走向（杜绝手动切换时研判方向不更新的 Bug）
+    const strategy = detectActiveStrategy(selected.map(s => s.key));
+    currentActivePreset = strategy.presetKey || 'custom';
+
+    // 动态同步顶部预设按钮高亮状态
+    Object.keys(STRATEGY_PRESETS).forEach(pk => {
+        const btn = document.getElementById(`preset_${pk}`);
+        if (btn) {
+            btn.className = (strategy.presetKey === pk)
+                ? 'px-2.5 py-1 rounded text-xs font-medium transition bg-emerald-500 text-white whitespace-nowrap shadow-sm'
+                : 'px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap';
+        }
+    });
+
+    // 动态更新策略说明文案
+    const descEl = document.getElementById('strategyDescText');
+    if (descEl) {
+        descEl.innerHTML = `
+            <span class="text-emerald-400 font-bold">当前策略: ${strategy.name}</span>
+            <span class="text-slate-400 ml-1.5">${strategy.desc}</span>
+        `;
+    }
+
     if (selected.length === 0) {
-        document.getElementById('resSynthSp').innerText = '--';
+        const synthSpEl = document.getElementById('resSynthSp');
+        const synthSpUnitEl = document.getElementById('resSynthSpUnit');
+        if (synthSpEl) {
+            synthSpEl.innerText = '--';
+            synthSpEl.className = 'text-xl sm:text-2xl font-black font-mono text-slate-400 tracking-tight';
+            synthSpEl.removeAttribute('title');
+        }
+        if (synthSpUnitEl) {
+            synthSpUnitEl.innerHTML = '<span class="text-slate-500">倍率</span>';
+        }
         document.getElementById('resBreakEvenTag').innerHTML = '<span class="text-slate-500">未选择赛果</span>';
         const planCards = document.getElementById('planCardsContainer');
         if (planCards) {
             planCards.innerHTML = '<div class="py-6 text-center text-slate-500 text-xs">请勾选至少 1 项半全场赛果</div>';
         }
-        // 无勾选时同时隐藏预算越界警示（避免残留旧状态）
+        // 无勾选时同时隐藏预算越界警示
         const warnEl = document.getElementById('budgetOverWarn');
         if (warnEl) warnEl.classList.add('hidden');
         return;
@@ -244,7 +360,24 @@ function calculate() {
     const sumInv = selected.reduce((acc, item) => acc + (1.0 / item.odds), 0);
     const synthSp = sumInv > 0 ? (1.0 / sumInv) : 0;
     const synthSpEl = document.getElementById('resSynthSp');
-    if (synthSpEl) synthSpEl.innerText = synthSp.toFixed(4);
+    const synthSpUnitEl = document.getElementById('resSynthSpUnit');
+    if (synthSpEl) {
+        synthSpEl.innerText = synthSp.toFixed(4);
+        if (synthSp < 1.0) {
+            // 合成单关 SP < 1.0 说明无论打出哪个选项返奖都低于总本金（必然亏损），以醒目警示红显示
+            synthSpEl.className = 'text-xl sm:text-2xl font-black font-mono text-rose-500 tracking-tight';
+            synthSpEl.title = '合成单关赔率 < 1.0，整体保本亏损（返奖低于本金）';
+            if (synthSpUnitEl) {
+                synthSpUnitEl.innerHTML = '<span class="text-rose-400 font-bold">倍率 <span class="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 border border-rose-500/30 text-rose-300">亏损</span></span>';
+            }
+        } else {
+            synthSpEl.className = 'text-xl sm:text-2xl font-black font-mono text-emerald-400 tracking-tight';
+            synthSpEl.title = '合成单关倍率 ≥ 1.0，具备盈利或保本空间';
+            if (synthSpUnitEl) {
+                synthSpUnitEl.innerHTML = '<span class="text-slate-500">倍率</span>';
+            }
+        }
+    }
 
     // 3. 无损对冲与折损研判
     const probSum = sumInv * 100;
@@ -252,13 +385,31 @@ function calculate() {
     if (probEl) probEl.innerText = `隐含概率: ${probSum.toFixed(1)}%`;
     const tagEl = document.getElementById('resBreakEvenTag');
 
+    // 解析官方 SP 用于对照研判
+    let officialSp = null;
+    const spRaw = (document.getElementById('inputSpHDA') ? document.getElementById('inputSpHDA').value : '') || '';
+    const spParts = spRaw.split('/').map(v => parseFloat(v));
+    if (spParts.length >= 3 && spParts.every(v => !isNaN(v) && v > 0)) {
+        if (strategy.targetDir === 'h') officialSp = spParts[0];
+        else if (strategy.targetDir === 'd') officialSp = spParts[1];
+        else if (strategy.targetDir === 'a') officialSp = spParts[2];
+    }
+
     if (tagEl) {
+        const profitPct = ((synthSp - 1.0) * 100).toFixed(1);
+        let compareBadge = '';
+        if (officialSp !== null && officialSp > 0) {
+            const diffPct = ((synthSp - officialSp) / officialSp * 100).toFixed(1);
+            const diffSign = diffPct >= 0 ? '+' : '';
+            compareBadge = `<span class="text-[11px] text-slate-400 font-normal ml-1.5 hidden xs:inline">（vs 官方${strategy.directionWord}SP ${officialSp.toFixed(2)}，折损 ${diffSign}${diffPct}%）</span>`;
+        }
+
         if (synthSp >= 1.0) {
-            tagEl.innerHTML = `<span class="text-emerald-400 font-bold">可绝对保本盈利 (+${((synthSp - 1.0) * 100).toFixed(1)}%)</span>`;
+            tagEl.innerHTML = `<span class="text-emerald-400 font-bold">${strategy.directionWord}打出可盈利 (+${profitPct}%)</span>${compareBadge}`;
         } else if (synthSp >= 0.95) {
-            tagEl.innerHTML = `<span class="text-amber-400 font-semibold">微弱折损 (${((synthSp - 1.0) * 100).toFixed(1)}%)</span>`;
+            tagEl.innerHTML = `<span class="text-amber-400 font-semibold">${strategy.directionWord}打出轻微折损 (${profitPct}%)</span>${compareBadge}`;
         } else {
-            tagEl.innerHTML = `<span class="text-slate-400">综合折损 (${((synthSp - 1.0) * 100).toFixed(1)}%)</span>`;
+            tagEl.innerHTML = `<span class="text-slate-400">${strategy.directionWord}打出综合折损 (${profitPct}%)</span>${compareBadge}`;
         }
     }
 
@@ -266,31 +417,35 @@ function calculate() {
     const covTypeEl = document.getElementById('resCoverageType');
     const covDetailEl = document.getElementById('resCoverageDetail');
     if (covTypeEl && covDetailEl) {
-        if (selected.length === 3) {
-            covTypeEl.innerText = '全景覆盖 (3项)';
-            covDetailEl.innerText = '该赛果方向100%有且仅有1张中';
-        } else if (selected.length === 6) {
-            covTypeEl.innerText = '双选不败 (6项)';
-            covDetailEl.innerText = '覆盖2种全场赛果，容错率极高';
+        covTypeEl.innerText = strategy.name;
+        if (strategy.isFullCover) {
+            covDetailEl.innerText = `该${strategy.directionWord}方向100%有且仅有1张中奖（物理守恒）`;
         } else {
-            covTypeEl.innerText = `自定义组合 (${selected.length}项)`;
-            covDetailEl.innerText = '自由点选策略';
+            covDetailEl.innerText = strategy.desc;
         }
     }
 
-    // 4. 计算各注数 (实体店 2 元整数)
+    // 4. 计算各注数 (¥2/注 整数)
     const totalTargetUnits = Math.max(selected.length, Math.round(budget / 2));
     const unitsMap = {};
 
-    // 获取当前策略的攻守分组
-    const curPreset = STRATEGY_PRESETS[currentActivePreset];
-    const hasDefense = curPreset && curPreset.defense && curPreset.defense.length > 0;
+    // 获取攻守分组（优先预设，自定义则按赔率智能划分：最低赔率项核心主攻，其余次选保底）
+    let attKeys = (strategy.attackKeys || []).filter(k => selected.some(s => s.key === k));
+    let defKeys = (strategy.defenseKeys || []).filter(k => selected.some(s => s.key === k));
+
+    if (attKeys.length === 0 && defKeys.length === 0 && selected.length > 0) {
+        const sorted = selected.slice().sort((a, b) => a.odds - b.odds);
+        attKeys = [sorted[0].key];
+        defKeys = sorted.slice(1).map(s => s.key);
+    } else if (attKeys.length === 0 && selected.length > 0) {
+        attKeys = [selected[0].key];
+        defKeys = selected.slice(1).map(s => s.key);
+    }
+
+    const hasDefense = defKeys.length > 0;
 
     if (currentAllocMode === 'attack_defense' && hasDefense) {
-        // 核心主攻 + 防守保本模式
-        const defKeys = curPreset.defense.filter(k => selected.some(s => s.key === k));
-        const attKeys = curPreset.attack.filter(k => selected.some(s => s.key === k));
-
+        // 最优梯度配资模式：核心主攻 + 次选保底
         let defUnitsTotal = 0;
         defKeys.forEach(k => {
             const item = selected.find(s => s.key === k);
@@ -301,7 +456,7 @@ function calculate() {
             }
         });
 
-        // 剩余注数给主攻项
+        // 剩余注数倾斜给主攻项
         const remainUnits = Math.max(attKeys.length, totalTargetUnits - defUnitsTotal);
         const attSumInv = attKeys.reduce((acc, k) => {
             const item = selected.find(s => s.key === k);
@@ -325,17 +480,8 @@ function calculate() {
             unitsMap[attKeys[0]] = Math.max(1, (unitsMap[attKeys[0]] || 1) + diff);
         }
 
-    } else if (currentAllocMode === 'equal_units') {
-        // 均注模式 1:1
-        const each = Math.max(1, Math.floor(totalTargetUnits / selected.length));
-        selected.forEach(s => unitsMap[s.key] = each);
-        let rem = totalTargetUnits - (each * selected.length);
-        if (rem > 0) {
-            unitsMap[selected[0].key] += rem;
-        }
-
     } else {
-        // 经典荷兰式等额对冲 (按 1/odds 分配)
+        // 经典荷兰式纯利润平衡 (按 1/odds 分配)
         selected.forEach(s => {
             const w = (1.0 / s.odds) / sumInv;
             unitsMap[s.key] = Math.max(1, Math.round(totalTargetUnits * w));
@@ -344,8 +490,8 @@ function calculate() {
         // 微调
         const curTotal = Object.values(unitsMap).reduce((a, b) => a + b, 0);
         const diff = totalTargetUnits - curTotal;
-        if (diff !== 0) {
-            unitsMap[selected[0].key] = Math.max(1, unitsMap[selected[0].key] + diff);
+        if (diff !== 0 && selected.length > 0) {
+            unitsMap[selected[0].key] = Math.max(1, (unitsMap[selected[0].key] || 1) + diff);
         }
     }
 
@@ -364,9 +510,10 @@ function calculate() {
         totalCost += cost;
         totalUnits += u;
 
-        const isDef = hasDefense && curPreset.defense.includes(item.key);
-        const tagLabel = isDef ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">防守保本</span>'
-            : (hasDefense ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">核心主攻</span>' : '');
+        const isDef = hasDefense && defKeys.includes(item.key);
+        const isAtt = hasDefense && attKeys.includes(item.key);
+        const tagLabel = isDef ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">次选保底</span>'
+            : (isAtt ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">核心主攻</span>' : '');
 
         item.u = u;
         item.cost = cost;

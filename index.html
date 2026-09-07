@@ -4,10 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>竞彩半全场「多维变式 & 人造单关」实战配资计算器</title>
+    <title>半全场实战配资计算器</title>
+    <link rel="icon" type="image/svg+xml" href="img/logo.svg">
+    <link rel="apple-touch-icon" href="img/logo.png">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- KaTeX 数学公式渲染引擎 (支持 $$...$$ 块级公式与 $...$ 行内公式) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -15,6 +23,19 @@
         rel="stylesheet">
 
     <script>
+        // 预检明暗主题偏好（默认 dark 暗黑模式，若用户曾切换过 light 则保持浅色，防止刷新闪烁）
+        try {
+            var theme = localStorage.getItem('htft_theme_v2');
+            if (theme === 'light') {
+                document.documentElement.classList.add('theme-light');
+            } else {
+                document.documentElement.classList.remove('theme-light');
+            }
+        } catch (e) {
+            document.documentElement.classList.remove('theme-light');
+        }
+    </script>
+
         tailwind.config = {
             theme: {
                 extend: {
@@ -50,21 +71,23 @@
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center space-x-2.5 sm:space-x-3">
                 <div
-                    class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
-                        </path>
-                    </svg>
+                    class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 shrink-0 border border-emerald-500/30">
+                    <img src="img/logo.svg" alt="HT/FT Logo" class="w-full h-full object-cover">
                 </div>
                 <div>
                     <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
                         <h1 class="text-sm sm:text-base lg:text-lg font-bold text-white tracking-tight">半全场实战配资计算器</h1>
-                        <span class="px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-amber-500/15 text-amber-300 rounded-full border border-amber-500/30 shadow-sm whitespace-nowrap">
-                            By @大胡 · 纯前端直连
-                        </span>
+                        <button id="btnAuthorDonate" onclick="openDonateModal()"
+                            class="px-2.5 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 active:bg-amber-500/35 text-amber-300 hover:text-amber-200 rounded-full border border-amber-500/30 hover:border-amber-400/50 shadow-sm whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer group active:scale-95 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+                            title="开源不易，请我喝杯咖啡～ ☕">
+                            <span
+                                class="inline-block transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110">☕</span>
+                            <span class="font-medium">By @大胡</span>
+                            <span
+                                class="text-[9px] text-amber-400/75 group-hover:text-amber-300 transition-colors hidden xs:inline border-l border-amber-500/30 pl-1.5">请喝咖啡</span>
+                        </button>
                     </div>
-                    <p class="text-[11px] sm:text-xs text-slate-400 hidden sm:block">多维变式拆单 · 人造单关对冲 · 实体店 2 元整数合规出票</p>
+                    <p class="text-[11px] sm:text-xs text-slate-400 hidden sm:block">多维变式拆单 · 人造单关对冲</p>
                 </div>
             </div>
 
@@ -74,16 +97,17 @@
                     class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs ds-box-loading">
                     <span id="dataSourceDot" class="ds-dot-loading"></span>
                     <span class="text-slate-400 hidden xs:inline">数据源:</span>
-                    <span id="dataSourceBadge" class="ds-text-loading font-medium font-mono text-[11px] sm:text-xs">加载中…</span>
+                    <span id="dataSourceBadge"
+                        class="ds-text-loading font-medium font-mono text-[11px] sm:text-xs">加载中…</span>
                 </div>
-                <button id="btnRefresh" onclick="refreshMatchData()"
+                <button id="btnRefresh" onclick="refreshMatchData({ force: true })"
                     class="flex items-center space-x-1 sm:space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition text-xs font-semibold active:scale-95 whitespace-nowrap">
                     <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                         </path>
                     </svg>
-                    <span>刷新数据</span>
+                    <span id="refreshBtnText">刷新数据</span>
                 </button>
                 <button onclick="toggleExplainModal()"
                     class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition text-xs flex items-center space-x-1 whitespace-nowrap">
@@ -92,6 +116,11 @@
                             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <span class="hidden sm:inline">策略解读</span>
+                </button>
+                <button id="themeToggleBtn" onclick="toggleTheme()"
+                    class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center justify-center text-sm active:scale-90 cursor-pointer shadow-sm shrink-0"
+                    title="当前为浅色主题，点击切换为深色">
+                    <span id="themeToggleIcon">🌙</span>
                 </button>
             </div>
         </div>
@@ -119,7 +148,8 @@
             <div class="degrade-banner">
                 <svg class="w-5 h-5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
                 </svg>
                 <div class="flex-1 min-w-0">
                     <p class="text-amber-300 font-bold text-xs sm:text-sm leading-snug">
@@ -141,7 +171,8 @@
                 <button onclick="hideDataFallbackBanner()" aria-label="关闭提示"
                     class="shrink-0 p-1.5 rounded-lg text-amber-200/60 hover:text-amber-100 hover:bg-amber-500/20 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
                     </svg>
                 </button>
             </div>
@@ -150,37 +181,16 @@
         <!-- 核心模块一：实战出票测算工作台 -->
         <section id="calculatorSection"
             class="glass-card rounded-2xl p-4 sm:p-6 lg:p-7 relative overflow-hidden transition-all duration-300">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 sm:pb-4 border-b border-white/5">
+            <div
+                class="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 sm:pb-4 border-b border-white/5">
                 <div class="flex items-center space-x-2.5 sm:space-x-3">
-                    <span
-                        class="px-2 sm:px-2.5 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">模块 1</span>
                     <h2 class="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
                         <span>半全场变式配资测算台</span>
-                        <span id="currentLoadedMatchTag"
-                            class="text-[11px] sm:text-xs font-normal px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">自定义输入</span>
                     </h2>
-                </div>
-                <!-- 资金分配模式 -->
-                <div class="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-start">
-                    <span class="text-xs text-slate-400 hidden xs:inline">配资模式:</span>
-                    <div class="inline-flex rounded-lg p-1 bg-slate-900/80 border border-slate-800 w-full sm:w-auto justify-center">
-                        <button onclick="setAllocationMode('dutched')" id="allocBtnDutched"
-                            class="flex-1 sm:flex-initial px-2 sm:px-2.5 py-1 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap">
-                            🛡️ 等额对冲
-                        </button>
-                        <button onclick="setAllocationMode('attack_defense')" id="allocBtnAttack"
-                            class="flex-1 sm:flex-initial px-2 sm:px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white whitespace-nowrap">
-                            🎯 主攻+防守
-                        </button>
-                        <button onclick="setAllocationMode('equal_units')" id="allocBtnEqual"
-                            class="flex-1 sm:flex-initial px-2 sm:px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white whitespace-nowrap">
-                            🚀 均注搏冷
-                        </button>
-                    </div>
                 </div>
             </div>
 
-            <!-- 策略快捷点选胶囊条 (支持移动端横向滑动，拒绝换行拥挤) -->
+            <!-- 策略快捷点选胶囊条 (移动端横向滑动，PC端三行清晰分布) -->
             <div class="mb-4 sm:mb-5 space-y-2 bg-slate-900/60 p-3 sm:p-3.5 rounded-xl border border-slate-800/80">
                 <div class="flex items-center justify-between text-xs">
                     <span class="font-bold text-slate-300 flex items-center gap-1.5">
@@ -190,47 +200,62 @@
                         </svg>
                         <span>一键点选变式策略预设:</span>
                     </span>
-                    <span class="text-[11px] text-slate-500 hidden sm:inline">支持横向触控滑动</span>
+                    <span class="text-[11px] text-slate-500 md:hidden">支持横向滑动</span>
                 </div>
 
-                <div class="flex overflow-x-auto no-scrollbar pb-1 gap-2 text-xs">
+                <div
+                    class="flex flex-row md:flex-col overflow-x-auto md:overflow-visible no-scrollbar pb-1 gap-2 text-xs">
                     <!-- 全场方向 -->
-                    <div class="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80 shrink-0">
-                        <span class="text-[10px] text-slate-400 px-1 font-semibold">全场:</span>
+                    <div
+                        class="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80 shrink-0 md:w-full md:flex-wrap">
+                        <span class="text-[11px] text-slate-400 px-2 font-semibold min-w-[70px] shrink-0">全场方向:</span>
                         <button onclick="applyPreset('ft_home')" id="preset_ft_home"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-emerald-500 text-white whitespace-nowrap">全场主胜 (3项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-emerald-500 text-white whitespace-nowrap">全场主胜
+                            (3项)</button>
                         <button onclick="applyPreset('ft_draw')" id="preset_ft_draw"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">全场平局 (3项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">全场平局
+                            (3项)</button>
                         <button onclick="applyPreset('ft_away')" id="preset_ft_away"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">全场客胜 (3项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">全场客胜
+                            (3项)</button>
                     </div>
 
                     <!-- 锁定半场 -->
-                    <div class="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80 shrink-0">
-                        <span class="text-[10px] text-cyan-400 px-1 font-semibold">锁定半场:</span>
+                    <div
+                        class="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80 shrink-0 md:w-full md:flex-wrap">
+                        <span class="text-[11px] text-cyan-400 px-2 font-semibold min-w-[70px] shrink-0">锁定半场:</span>
                         <button onclick="applyPreset('ht_draw')" id="preset_ht_draw"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🔒 锁定半场平 (3项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🔒
+                            锁定半场平 (3项)</button>
                         <button onclick="applyPreset('ht_home')" id="preset_ht_home"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">半场主领先 (3项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">半场主领先
+                            (3项)</button>
                         <button onclick="applyPreset('ht_away')" id="preset_ht_away"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">半场客领先 (3项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">半场客领先
+                            (3项)</button>
                     </div>
 
                     <!-- 双选不败 -->
-                    <div class="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80 shrink-0">
-                        <span class="text-[10px] text-amber-400 px-1 font-semibold">不败全包:</span>
+                    <div
+                        class="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80 shrink-0 md:w-full md:flex-wrap">
+                        <span class="text-[11px] text-amber-400 px-2 font-semibold min-w-[70px] shrink-0">不败全包:</span>
                         <button onclick="applyPreset('double_home_draw')" id="preset_double_home_draw"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🛡️ 主队不败 (6项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🛡️
+                            主队不败 (6项)</button>
                         <button onclick="applyPreset('double_away_draw')" id="preset_double_away_draw"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🛡️ 客队不败 (6项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">🛡️
+                            客队不败 (6项)</button>
                         <button onclick="applyPreset('double_decisive')" id="preset_double_decisive"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">⚔️ 决出胜负 (6项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">⚔️
+                            决出胜负 (6项)</button>
                         <button onclick="applyPreset('double_ht_home_draw')" id="preset_double_ht_home_draw"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">主半场不败 (6项)</button>
+                            class="px-2.5 py-1 rounded text-xs font-medium transition bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">主半场不败
+                            (6项)</button>
                     </div>
                 </div>
 
-                <div id="strategyDescText" class="text-[11px] sm:text-xs text-slate-400 pt-1 flex flex-wrap items-center gap-1.5">
+                <div id="strategyDescText"
+                    class="text-[11px] sm:text-xs text-slate-400 pt-1 flex flex-wrap items-center gap-1.5">
                     <span class="text-emerald-400 font-bold">当前策略说明:</span>
                     <span>覆盖全场主队获胜的全部半场走势，主胜100%有且仅有1张中奖（物理守恒）</span>
                 </div>
@@ -255,7 +280,8 @@
                 </div>
                 <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                     <label class="text-slate-500 block mb-1 text-[11px]">官方胜平负SP (胜/平/负)</label>
-                    <input type="text" id="inputSpHDA" value="8.75 / 6.00 / 1.18" placeholder="8.75 / 6.00 / 1.18" readonly
+                    <input type="text" id="inputSpHDA" value="8.75 / 6.00 / 1.18" placeholder="8.75 / 6.00 / 1.18"
+                        readonly
                         class="w-full bg-transparent font-mono font-bold text-amber-400 focus:outline-none text-xs sm:text-sm cursor-default">
                     <p class="text-[10px] text-slate-500 mt-1 leading-snug">当前版本该值用于对照参考（计算以半全场赔率为准）</p>
                 </div>
@@ -270,7 +296,8 @@
                         <div class="flex items-center space-x-2">
                             <span class="text-sm font-bold text-white">半全场 9 项组合赔率矩阵</span>
                             <span id="selectedCountBadge"
-                                class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">已选 3 项</span>
+                                class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">已选
+                                3 项</span>
                         </div>
                         <span class="text-[11px] text-slate-500">点击卡片可自由多选组合</span>
                     </div>
@@ -281,8 +308,10 @@
                         <div id="cell_hh" onclick="toggleCell('hh', event)"
                             class="matrix-cell selected p-2.5 sm:p-3 rounded-xl border border-slate-700 bg-slate-800/60 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300">胜胜</span>
-                                <input type="checkbox" id="chk_hh" checked class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300">胜胜</span>
+                                <input type="checkbox" id="chk_hh" checked
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场胜·全场胜</span>
@@ -299,8 +328,10 @@
                         <div id="cell_hd" onclick="toggleCell('hd', event)"
                             class="matrix-cell p-2.5 sm:p-3 rounded-xl border border-slate-800 bg-slate-800/30 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-blue-500/20 text-blue-300">胜平</span>
-                                <input type="checkbox" id="chk_hd" class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-blue-500/20 text-blue-300">胜平</span>
+                                <input type="checkbox" id="chk_hd"
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场胜·全场平</span>
@@ -317,8 +348,10 @@
                         <div id="cell_ha" onclick="toggleCell('ha', event)"
                             class="matrix-cell p-2.5 sm:p-3 rounded-xl border border-slate-800 bg-slate-800/30 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-purple-500/20 text-purple-300">胜负</span>
-                                <input type="checkbox" id="chk_ha" class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-purple-500/20 text-purple-300">胜负</span>
+                                <input type="checkbox" id="chk_ha"
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场胜·全场负</span>
@@ -335,8 +368,10 @@
                         <div id="cell_dh" onclick="toggleCell('dh', event)"
                             class="matrix-cell selected p-2.5 sm:p-3 rounded-xl border border-slate-700 bg-slate-800/60 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300">平胜</span>
-                                <input type="checkbox" id="chk_dh" checked class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300">平胜</span>
+                                <input type="checkbox" id="chk_dh" checked
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场平·全场胜</span>
@@ -353,8 +388,10 @@
                         <div id="cell_dd" onclick="toggleCell('dd', event)"
                             class="matrix-cell p-2.5 sm:p-3 rounded-xl border border-slate-800 bg-slate-800/30 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-blue-500/20 text-blue-300">平平</span>
-                                <input type="checkbox" id="chk_dd" class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-blue-500/20 text-blue-300">平平</span>
+                                <input type="checkbox" id="chk_dd"
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场平·全场平</span>
@@ -371,8 +408,10 @@
                         <div id="cell_da" onclick="toggleCell('da', event)"
                             class="matrix-cell p-2.5 sm:p-3 rounded-xl border border-slate-800 bg-slate-800/30 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-purple-500/20 text-purple-300">平负</span>
-                                <input type="checkbox" id="chk_da" class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-purple-500/20 text-purple-300">平负</span>
+                                <input type="checkbox" id="chk_da"
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场平·全场负</span>
@@ -389,8 +428,10 @@
                         <div id="cell_ah" onclick="toggleCell('ah', event)"
                             class="matrix-cell selected p-2.5 sm:p-3 rounded-xl border border-slate-700 bg-slate-800/60 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300">负胜</span>
-                                <input type="checkbox" id="chk_ah" checked class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300">负胜</span>
+                                <input type="checkbox" id="chk_ah" checked
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场负·全场逆转胜</span>
@@ -407,8 +448,10 @@
                         <div id="cell_ad" onclick="toggleCell('ad', event)"
                             class="matrix-cell p-2.5 sm:p-3 rounded-xl border border-slate-800 bg-slate-800/30 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-blue-500/20 text-blue-300">负平</span>
-                                <input type="checkbox" id="chk_ad" class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-blue-500/20 text-blue-300">负平</span>
+                                <input type="checkbox" id="chk_ad"
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场负·全场逼平</span>
@@ -425,8 +468,10 @@
                         <div id="cell_aa" onclick="toggleCell('aa', event)"
                             class="matrix-cell p-2.5 sm:p-3 rounded-xl border border-slate-800 bg-slate-800/30 cursor-pointer flex flex-col justify-between space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-purple-500/20 text-purple-300">负负</span>
-                                <input type="checkbox" id="chk_aa" class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
+                                <span
+                                    class="px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-purple-500/20 text-purple-300">负负</span>
+                                <input type="checkbox" id="chk_aa"
+                                    class="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 bg-slate-900 pointer-events-none">
                             </div>
                             <div>
                                 <span class="text-[10px] text-slate-500 block">半场负·全场负</span>
@@ -440,27 +485,63 @@
                         </div>
                     </div>
 
-                    <!-- 计划配资预算输入 -->
-                    <div class="bg-slate-900/70 p-3 sm:p-4 rounded-xl border border-slate-800 space-y-2.5">
-                        <div class="flex items-center justify-between text-xs">
-                            <label for="inputBudget" class="font-bold text-slate-300 flex items-center gap-1.5">
-                                <span>计划实战总出票预算:</span>
-                                <span class="text-[11px] text-slate-500">(按实体店 ¥2/注 自动配资)</span>
-                            </label>
-                            <span class="text-emerald-400 font-mono font-bold text-xs" id="planModeHint">当前：绝对等额对冲 (平滑保底)</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <div class="relative flex-1">
-                                <span class="absolute left-3 top-2.5 text-slate-400 font-mono text-sm">¥</span>
-                                <input type="number" id="inputBudget" value="100" step="10" min="6" inputmode="numeric" oninput="calculate()"
-                                    class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-7 pr-3 py-2 text-white font-mono font-bold text-sm focus:border-emerald-500 focus:outline-none">
+                    <!-- 配资模式与实战总出票预算控制 (移至此处，与右侧分项注数规划处于同一视窗，切换模式时即刻看到注数与收益变动) -->
+                    <div class="space-y-2.5">
+                        <div
+                            class="bg-slate-900/90 p-2.5 sm:p-3 rounded-xl border border-slate-800 flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2.5 shadow-sm">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                                        </path>
+                                    </svg>
+                                    <span>资金分配模式:</span>
+                                </span>
                             </div>
-                            <!-- 预算快捷按钮 -->
-                            <div class="flex space-x-1">
-                                <button onclick="setBudget(50)" class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">50</button>
-                                <button onclick="setBudget(100)" class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">100</button>
-                                <button onclick="setBudget(200)" class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">200</button>
-                                <button onclick="setBudget(500)" class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition hidden xs:block">500</button>
+                            <div
+                                class="inline-flex rounded-lg p-1 bg-slate-950 border border-slate-800 w-full xs:w-auto justify-center">
+                                <button onclick="setAllocationMode('attack_defense')" id="allocBtnAttack"
+                                    class="flex-1 xs:flex-initial px-3 py-1.5 rounded-md text-xs font-medium transition bg-emerald-500 text-white shadow-sm whitespace-nowrap">
+                                    🎯 最优梯度配资 (推荐)
+                                </button>
+                                <button onclick="setAllocationMode('dutched')" id="allocBtnDutched"
+                                    class="flex-1 xs:flex-initial px-3 py-1.5 rounded-md text-xs font-medium transition text-slate-400 hover:text-white whitespace-nowrap">
+                                    ⚖️ 纯利润平衡 (等额)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 计划配资预算输入 -->
+                        <div class="bg-slate-900/70 p-3 sm:p-4 rounded-xl border border-slate-800 space-y-2.5">
+                            <div class="flex items-center justify-between text-xs">
+                                <label for="inputBudget" class="font-bold text-slate-300 flex items-center gap-1.5">
+                                    <span>计划实战总出票预算:</span>
+                                    <span class="text-[11px] text-slate-500">(按 ¥2/注 自动配资)</span>
+                                </label>
+                                <span class="text-emerald-400 font-mono font-bold text-xs" id="planModeHint">当前：最优梯度配资
+                                    (核心主攻
+                                    + 次选保底)</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="relative flex-1">
+                                    <span class="absolute left-3 top-2.5 text-slate-400 font-mono text-sm">¥</span>
+                                    <input type="number" id="inputBudget" value="100" step="10" min="6"
+                                        inputmode="numeric" oninput="calculate()"
+                                        class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-7 pr-3 py-2 text-white font-mono font-bold text-sm focus:border-emerald-500 focus:outline-none">
+                                </div>
+                                <!-- 预算快捷按钮 -->
+                                <div class="flex space-x-1">
+                                    <button onclick="setBudget(50)"
+                                        class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">50</button>
+                                    <button onclick="setBudget(100)"
+                                        class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">100</button>
+                                    <button onclick="setBudget(200)"
+                                        class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">200</button>
+                                    <button onclick="setBudget(500)"
+                                        class="px-2 sm:px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition hidden xs:block">500</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -477,7 +558,8 @@
                                 title="把当前测算台方案收藏到本地浏览器 (htft_saved_plans)">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z">
+                                    </path>
                                 </svg>
                                 <span>收藏方案</span>
                             </button>
@@ -486,7 +568,8 @@
                                 title="查看本地已收藏方案，支持一键载入测算台或删除">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4">
+                                    </path>
                                 </svg>
                                 <span>我的方案</span>
                             </button>
@@ -495,7 +578,8 @@
                                 title="生成文字清单或竖版分享卡">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
+                                    </path>
                                 </svg>
                                 <span>分享方案</span>
                             </button>
@@ -504,35 +588,41 @@
                     </div>
 
                     <!-- 综合指标概览卡片 -->
-                    <div class="bg-gradient-to-br from-slate-900 to-slate-950 p-4 sm:p-5 rounded-xl border border-slate-800 space-y-4">
+                    <div
+                        class="bg-gradient-to-br from-slate-900 to-slate-950 p-4 sm:p-5 rounded-xl border border-slate-800 space-y-4">
                         <div class="grid grid-cols-2 gap-3">
                             <div class="p-3 rounded-lg bg-slate-800/40 border border-slate-700/60">
                                 <span class="text-[11px] text-slate-400 block mb-0.5">组合等效合成单关 SP</span>
                                 <div class="flex items-baseline space-x-1.5">
-                                    <span class="text-xl sm:text-2xl font-black font-mono text-emerald-400 tracking-tight" id="resSynthSp">8.6203</span>
-                                    <span class="text-[10px] text-slate-500 font-mono">倍率</span>
+                                    <span
+                                        class="text-xl sm:text-2xl font-black font-mono text-emerald-400 tracking-tight transition-colors duration-200"
+                                        id="resSynthSp">8.6203</span>
+                                    <span class="text-[10px] text-slate-500 font-mono transition-colors duration-200" id="resSynthSpUnit">倍率</span>
                                 </div>
                             </div>
                             <div class="p-3 rounded-lg bg-slate-800/40 border border-slate-700/60">
                                 <span class="text-[11px] text-slate-400 block mb-0.5">覆盖策略类型</span>
-                                <div class="text-xs sm:text-sm font-bold text-white mt-1" id="resCoverageType">全景覆盖 (3项)</div>
-                                <span class="text-[10px] text-slate-500 block truncate" id="resCoverageDetail">该赛果方向100%有且仅有1张中</span>
+                                <div class="text-xs sm:text-sm font-bold text-white mt-1" id="resCoverageType">全景覆盖 (3项)
+                                </div>
+                                <span class="text-[10px] text-slate-500 block truncate"
+                                    id="resCoverageDetail">该赛果方向100%有且仅有1张中</span>
                             </div>
                         </div>
 
                         <!-- 盈亏判定微状态 -->
-                        <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-950/80 border border-slate-800/80 text-xs">
+                        <div
+                            class="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-950/80 border border-slate-800/80 text-xs">
                             <span class="text-slate-400">对冲盈亏研判:</span>
                             <span id="resBreakEvenTag" class="font-bold">
-                                <span class="text-emerald-400">可绝对保本盈利 (+762.0%)</span>
+                                <span class="text-emerald-400">主胜可盈利 (+762.0%)</span>
                             </span>
                         </div>
 
-                        <!-- 实体店出票各选项买入注数清单 -->
+                        <!-- 出票各选项买入注数清单 -->
                         <div class="space-y-2">
                             <div class="flex items-center justify-between text-[11px] text-slate-400">
-                                <span>分项出票注数规划 (店员出票依据):</span>
-                                <span>按实体店 ¥2/注 取整</span>
+                                <span>分项出票注数规划 (出票依据):</span>
+                                <span>按 ¥2/注 取整</span>
                             </div>
                             <div id="planCardsContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1">
                                 <!-- 由 JS 动态计算生成 -->
@@ -540,23 +630,31 @@
                         </div>
 
                         <!-- 预算越界警示条：实际出票总额超过设定预算时由 calculate() 显示 -->
-                        <div id="budgetOverWarn" class="hidden px-3 py-2.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2" role="alert">
-                            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        <div id="budgetOverWarn"
+                            class="hidden px-3 py-2.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2"
+                            role="alert">
+                            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                </path>
                             </svg>
                             <span id="budgetOverWarnText" class="font-semibold">实际投注额超出设定预算</span>
                         </div>
 
                         <!-- 汇总出票金额与盈亏预期 -->
-                        <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+                        <div
+                            class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
                             <div>
                                 <span>实际出票总计: </span>
                                 <strong class="text-emerald-400 font-mono text-base" id="planTotalCost">¥100</strong>
-                                <span class="text-slate-500 ml-1 font-mono">(共 <span id="planTotalUnits">50</span> 注)</span>
+                                <span class="text-slate-500 ml-1 font-mono">(共 <span id="planTotalUnits">50</span>
+                                    注)</span>
                             </div>
                             <div>
                                 <span>命中任一盈亏: </span>
-                                <strong class="text-white font-mono text-xs sm:text-sm" id="planRoiSummary">+750.0% ~ +780.0%</strong>
+                                <strong class="text-white font-mono text-xs sm:text-sm" id="planRoiSummary">+750.0% ~
+                                    +780.0%</strong>
                             </div>
                         </div>
                     </div>
@@ -565,28 +663,48 @@
         </section>
 
         <!-- 核心模块二：在售比赛智能挖掘明细列表 -->
-        <section id="matchListSection" class="glass-card rounded-2xl p-4 sm:p-6 lg:p-7 space-y-4 transition-all duration-300">
+        <section id="matchListSection"
+            class="glass-card rounded-2xl p-4 sm:p-6 lg:p-7 space-y-4 transition-all duration-300">
 
             <!-- 🔥 最优拆单推荐：自动从「未开胜平负单关」场次中挑出最划算拆法 Top 3 (一键应用到测算台) -->
             <div id="optimalRecBox"
                 class="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.07] via-slate-900/40 to-rose-500/[0.06] p-4 sm:p-5 space-y-3 relative overflow-hidden">
                 <!-- 顶部氛围光晕（纯装饰） -->
-                <div class="pointer-events-none absolute -top-10 -left-10 w-36 h-36 rounded-full bg-amber-500/10 blur-3xl"></div>
-                <div class="pointer-events-none absolute -bottom-12 -right-8 w-40 h-40 rounded-full bg-rose-500/10 blur-3xl"></div>
+                <div
+                    class="pointer-events-none absolute -top-10 -left-10 w-36 h-36 rounded-full bg-amber-500/10 blur-3xl">
+                </div>
+                <div
+                    class="pointer-events-none absolute -bottom-12 -right-8 w-40 h-40 rounded-full bg-rose-500/10 blur-3xl">
+                </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-2 relative">
                     <div class="flex items-center gap-2.5">
                         <span class="text-lg sm:text-xl leading-none">🔥</span>
                         <div>
-                            <h3 class="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
-                                <span>最优拆单推荐</span>
-                                <span class="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap">大胡最爱 · 一键抄作业</span>
+                            <h3
+                                class="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
+                                <span>精选拆单推荐</span>
                             </h3>
-                            <p class="text-[11px] text-slate-400 mt-0.5">自动从「未开胜平负单关」场次中，跨胜/平/负三向算出合成单关折损最优的拆法，点「一键应用」直达测算台</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">
+                                智能从「未开单关」在售场次中，精选折合赔率低（高概率稳胆且有收益空间）的拆单方案，支持一键载入测算台</p>
                         </div>
                     </div>
-                    <span id="recBadgeCount"
-                        class="text-[11px] px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono font-bold whitespace-nowrap relative">Top 3</span>
+                    <div class="flex items-center gap-2">
+                        <div
+                            class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 p-0.5 rounded-lg text-xs">
+                            <button id="recModeSteady" onclick="setRecMode('steady')"
+                                class="px-2.5 py-1 rounded text-xs font-bold transition bg-emerald-500 text-white shadow-sm whitespace-nowrap">
+                                🎯 高胜率稳胆
+                            </button>
+                            <button id="recModeShrink" onclick="setRecMode('shrink')"
+                                class="px-2.5 py-1 rounded text-xs font-medium transition text-slate-300 hover:text-white bg-slate-800/80 whitespace-nowrap">
+                                📉 极低折损
+                            </button>
+                        </div>
+                        <span id="recBadgeCount"
+                            class="text-[11px] px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono font-bold whitespace-nowrap relative">Top
+                            3</span>
+                    </div>
                 </div>
 
                 <!-- 推荐卡片容器（JS 渲染） -->
@@ -598,20 +716,20 @@
             <!-- 列表头部控制栏 -->
             <div class="flex flex-wrap items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-white/5">
                 <div class="flex items-center space-x-2.5 sm:space-x-3">
-                    <span
-                        class="px-2 sm:px-2.5 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">模块 2</span>
                     <div>
                         <h2 class="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
                             <span>在售比赛「拆单优选」排行榜</span>
                         </h2>
-                        <span class="text-[11px] sm:text-xs font-normal text-slate-400" id="matchListCountText">(共 32 场，23 场未开单关适合拆单)</span>
+                        <span class="text-[11px] sm:text-xs font-normal text-slate-400" id="matchListCountText">(共 32
+                            场，23 场未开单关适合拆单)</span>
                     </div>
                 </div>
 
                 <!-- 筛选与控制器组 -->
                 <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs w-full lg:w-auto">
                     <!-- 拆单目标赛果切换 (主胜 / 平局 / 客胜) -->
-                    <div class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 p-1 rounded-lg text-xs">
+                    <div
+                        class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 p-1 rounded-lg text-xs">
                         <span class="text-slate-400 pl-1.5 pr-1 text-[11px] font-semibold hidden xs:inline">拆单方向:</span>
                         <button onclick="setListTargetOutcome('h')" id="targetBtn_h"
                             class="px-2.5 py-1 rounded text-xs font-bold transition bg-emerald-500 text-white shadow-sm whitespace-nowrap">
@@ -651,7 +769,8 @@
                     <div class="flex items-center space-x-1.5 whitespace-nowrap">
                         <span class="text-slate-400 hidden sm:inline">折损率:</span>
                         <select id="selectShrinkFilter"
-                            class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-emerald-500 focus:outline-none text-[11px] sm:text-xs" title="按折损率档位快速筛选：适合拆单 = 折损率 ≥ -8%（排除红色折损较高）；高性价比 = 正溢价 / 接近 0">
+                            class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-emerald-500 focus:outline-none text-[11px] sm:text-xs"
+                            title="按折损率档位快速筛选：适合拆单 = 折损率 ≥ -8%（排除红色折损较高）；高性价比 = 正溢价 / 接近 0">
                             <option value="all">全部折损</option>
                             <option value="fit">适合拆单 (≥-8%)</option>
                             <option value="premium">高性价比 (正溢价)</option>
@@ -662,8 +781,10 @@
                     <div class="relative flex-1 sm:flex-initial">
                         <input type="text" id="inputSearch" placeholder="搜索球队/联赛..."
                             class="bg-slate-900 border border-slate-700 rounded-lg pl-7 pr-3 py-1.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none w-full sm:w-44 text-[11px] sm:text-xs">
-                        <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </div>
                 </div>
@@ -672,7 +793,8 @@
             <!-- 桌面端表格视图 (在 md: 屏幕及以上展现) -->
             <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
                 <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-900/90 text-slate-400 uppercase font-semibold border-b border-slate-800 whitespace-nowrap">
+                    <thead
+                        class="bg-slate-900/90 text-slate-400 uppercase font-semibold border-b border-slate-800 whitespace-nowrap">
                         <tr>
                             <th class="py-3 px-3 w-10 text-center">排名</th>
                             <th class="py-3 px-3">场次 / 联赛</th>
@@ -717,14 +839,16 @@
                         <span>&lt; -8%：折损较高</span>
                     </span>
                 </div>
-                <div>数据来源：中国竞彩官方 API 实时测算</div>
+                <div>数据来源：竞彩网</div>
             </div>
         </section>
     </main>
 
     <!-- 策略数理解读与玩法说明模态弹窗 (桌面居中，移动端底部向上滑出抽屉) -->
-    <div id="explainModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
-        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl modal-sheet-content">
+    <div id="explainModal"
+        class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
+        <div
+            class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl modal-sheet-content">
             <!-- 移动端把手装饰条 -->
             <div class="md:hidden flex justify-center pt-2.5 pb-1">
                 <div class="w-10 h-1 rounded-full bg-slate-700"></div>
@@ -732,50 +856,138 @@
 
             <div class="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
                 <div class="flex items-center space-x-2.5">
-                    <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-sm font-bold">💡</span>
+                    <span
+                        class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-sm font-bold">💡</span>
                     <h3 class="text-base sm:text-lg font-bold text-white">半全场多维变式 & 人造单关数理白皮书</h3>
                 </div>
-                <button onclick="toggleExplainModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                <button onclick="toggleExplainModal()"
+                    class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
                     </svg>
                 </button>
             </div>
 
-            <div class="p-4 sm:p-6 space-y-4 text-xs sm:text-sm text-slate-300 max-h-[75vh] overflow-y-auto">
-                <div class="space-y-1.5">
+            <div class="p-4 sm:p-6 space-y-5 text-xs sm:text-sm text-slate-300 max-h-[75vh] overflow-y-auto">
+                <!-- 1. 全概率物理守恒与人造单关 -->
+                <div class="space-y-2">
                     <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-1.5">
-                        <span class="text-emerald-400">1.</span>
+                        <span
+                            class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 inline-flex items-center justify-center text-xs font-mono">1</span>
                         <span>什么是半全场「人造单关」？</span>
                     </h4>
-                    <p class="text-slate-400 leading-relaxed text-xs sm:text-sm">
-                        在竞彩足球中，许多比赛因官方风控<strong>未开售胜平负单关</strong>（必须串关）。但根据概率论的全概率分解定理，全场胜平负可精准拆解为半全场对应的 3 种互斥走势（如全场主胜 = 胜胜 + 平胜 + 负胜）。
+                    <p class="text-slate-400 leading-relaxed">
+                        在竞彩足球中，许多比赛因官方风控<strong>未开售胜平负单关</strong>（必须串关）。但在半全场（HAFU）中，官方通常开放了单关权限。
+                        根据全概率分解定理，全场胜平负可精准拆解为半全场对应的互斥赛果走势集合：
                     </p>
-                    <p class="text-slate-400 leading-relaxed text-xs sm:text-sm">
-                        只要全场主队获胜，上述 3 项中有且仅有 1 张必定中奖，其余 2 张必定落选。通过<strong>荷兰式配资算法 (Dutching)</strong>，按倒数赔率精准分配投注本金，可实现命中任意一项均获得完全相同的等额返还，从而<strong>无损合成出合规的单关投注</strong>！
+                    <div
+                        class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center text-slate-200 overflow-x-auto font-mono">
+                        $$W = \{HH, DH, AH\},\qquad D_f = \{HD, DD, AD\},\qquad A = \{HA, DA, AA\}$$
+                    </div>
+                    <p class="text-slate-400 leading-relaxed text-xs">
+                        其中 $W$ 为全场主胜集合、$D_f$ 为全场平局集合、$A$ 为全场客胜集合。
+                        <strong>物理守恒定理</strong>：只要全场主队获胜，集合 $W$ 中的 3 项（胜胜、平胜、负胜）中有且仅有 1 张必定中奖，其余 2 张必定落选。
                     </p>
                 </div>
 
-                <div class="space-y-1.5 pt-2 border-t border-slate-800">
+                <!-- 2. 荷兰式配资原理 -->
+                <div class="space-y-2 pt-3 border-t border-slate-800">
                     <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-1.5">
-                        <span class="text-emerald-400">2.</span>
-                        <span>什么是「合成折损率」？如何选场？</span>
+                        <span
+                            class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 inline-flex items-center justify-center text-xs font-mono">2</span>
+                        <span>荷兰式配资（Dutching）数学原理与资金分配</span>
                     </h4>
-                    <p class="text-slate-400 leading-relaxed text-xs sm:text-sm">
-                        体彩官方各玩法的返奖率与抽水比例不同。半全场合成单关 SP 往往较直接胜平负 SP 略有缩水，差额百分比即为<strong>合成折损率</strong>。
+                    <p class="text-slate-400 leading-relaxed">
+                        设用户总预算为 $B$，所选的 $n$ 个互斥半全场赛果赔率分别为 $O_1, O_2, \dots, O_n$。
+                        纯利润平衡的目标是使每个赛果命中时的税前返奖金额 $R$ 恒定相等：
                     </p>
-                    <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 font-mono text-[11px] sm:text-xs text-slate-300">
-                        合成单关SP = 1 / (1/O₁ + 1/O₂ + 1/O₃)<br>
-                        折损率 = (合成SP - 官方SP) / 官方SP × 100%
+                    <div
+                        class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center text-slate-200 overflow-x-auto font-mono">
+                        $$R = B_i \times O_i = \text{常数}$$
                     </div>
-                    <p class="text-slate-400 leading-relaxed text-xs sm:text-sm">
-                        折损率越接近 0%（甚至在部分冷门场次出现正溢价），说明拆单性价比越高。模块 2 已为你实时筛选出所有未开单关且折损率最优的比赛！
+                    <p class="text-slate-400 leading-relaxed">由此可推导出各选项的标准资金分配比例公式：</p>
+                    <div
+                        class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center text-slate-200 overflow-x-auto font-mono">
+                        $$B_i = B \times \frac{\frac{1}{O_i}}{\sum_{k=1}^n \frac{1}{O_k}}$$
+                    </div>
+                </div>
+
+                <!-- 3. 合成单关 SP 与折损率 -->
+                <div class="space-y-2 pt-3 border-t border-slate-800">
+                    <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-1.5">
+                        <span
+                            class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 inline-flex items-center justify-center text-xs font-mono">3</span>
+                        <span>合成单关 SP 与官方折损率计算</span>
+                    </h4>
+                    <p class="text-slate-400 leading-relaxed">
+                        通过全包对应赛果所实现的等效人造单关固定倍率公式为：
+                    </p>
+                    <div
+                        class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center text-slate-200 overflow-x-auto font-mono">
+                        $$S_{synth} = \frac{1}{\sum_{i=1}^n \frac{1}{O_i}}$$
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">
+                        体彩官方半全场与胜平负玩法的返奖率与抽水比例不同。人工合成单关 SP 与直接开售的官方 SP 之差额即为<strong>合成折损率</strong>：
+                    </p>
+                    <div
+                        class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center text-slate-200 overflow-x-auto font-mono">
+                        $$\text{折损率} = \frac{S_{synth} - S_{official}}{S_{official}} \times 100\%$$
+                    </div>
+                    <p class="text-slate-400 leading-relaxed text-xs">
+                        折损率越接近 0%（甚至在部分逆转冷门倒挂场次出现正溢价），说明拆单性价比越高。
+                    </p>
+                </div>
+
+                <!-- 4. 最优梯度配资实战算法 -->
+                <div class="space-y-2 pt-3 border-t border-slate-800">
+                    <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-1.5">
+                        <span
+                            class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 inline-flex items-center justify-center text-xs font-mono">4</span>
+                        <span>最优梯度配资算法（核心主攻 + 次选保底）</span>
+                    </h4>
+                    <p class="text-slate-400 leading-relaxed">
+                        在实战拆单中，不同半全场选项的发生概率差异极大（如胜胜概率通常占主胜的 65%~75%，平胜占 20%~25%，负胜占 5% 左右但赔率极高）。
+                        为了避免等额对冲摊薄主力利润，本系统主推<strong>最优梯度配资模型</strong>：
+                    </p>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>① 次选保底项</strong>：按保本为目标分配最小整数注数（覆盖总本金 $B$）：
+                    </p>
+                    <div
+                        class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center text-slate-200 overflow-x-auto font-mono">
+                        $$U_{def} = \left\lceil \frac{B}{2 \times O_{def}} \right\rceil$$
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>② 核心主攻项</strong>：将扣除保底注数后的剩余预算注数，按赔率倒数权重全部倾斜注入主力选项：
+                    </p>
+                    <div
+                        class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center text-slate-200 overflow-x-auto font-mono">
+                        $$U_{remain} = \max\left(n_{att},\; U_{total} - \sum U_{def}\right),\qquad U_{att} =
+                        \text{round}\left( U_{remain} \times \frac{\frac{1}{O_{att}}}{\sum_{k \in att} \frac{1}{O_k}}
+                        \right)$$
+                    </div>
+                    <p class="text-slate-400 leading-relaxed text-xs text-emerald-400 font-semibold">
+                        效果：次选赛果打出保底回本不亏损；核心主力赛果打出拿满超额暴击利润！
+                    </p>
+                </div>
+
+                <!-- 5. 整数出票纪律 -->
+                <div class="space-y-2 pt-3 border-t border-slate-800">
+                    <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-1.5">
+                        <span
+                            class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 inline-flex items-center justify-center text-xs font-mono">5</span>
+                        <span>实体投注与注数取整纪律</span>
+                    </h4>
+                    <p class="text-slate-400 leading-relaxed text-xs">
+                        中国体育彩票以 2 元为最小出票单位：总投注额 $B_{actual} = 2 \times \sum U_i$。
+                        本计算引擎采用科学四舍五入及动态尾数平衡算法，实操出票前请核对页面出票清单中的实际出票总金额。
                     </p>
                 </div>
             </div>
 
             <div class="p-3 sm:p-4 bg-slate-950/60 border-t border-slate-800 flex justify-end">
-                <button onclick="toggleExplainModal()" class="w-full sm:w-auto px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition active:scale-95">
+                <button onclick="toggleExplainModal()"
+                    class="w-full sm:w-auto px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition active:scale-95">
                     我知道了
                 </button>
             </div>
@@ -783,8 +995,10 @@
     </div>
 
     <!-- 拆单方案分享弹窗：文字清单一键复制 + Canvas 竖版分享卡 PNG 下载 -->
-    <div id="shareModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
-        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl modal-sheet-content">
+    <div id="shareModal"
+        class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
+        <div
+            class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl modal-sheet-content">
             <!-- 移动端底部抽屉把手装饰条 -->
             <div class="md:hidden flex justify-center pt-2.5 pb-1">
                 <div class="w-10 h-1 rounded-full bg-slate-700"></div>
@@ -793,13 +1007,15 @@
             <!-- 弹窗头 -->
             <div class="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
                 <div class="flex items-center space-x-2.5">
-                    <span class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-sm font-bold">📤</span>
+                    <span
+                        class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-sm font-bold">📤</span>
                     <h3 class="text-base sm:text-lg font-bold text-white">拆单方案分享</h3>
                 </div>
                 <button onclick="toggleShareModal()" aria-label="关闭分享"
                     class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
                     </svg>
                 </button>
             </div>
@@ -818,7 +1034,8 @@
                 <div id="shareTextPane" class="space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="font-bold text-white flex items-center gap-1.5">
-                            <span class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-[11px]">📋</span>
+                            <span
+                                class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-[11px]">📋</span>
                             文字出票清单
                         </span>
                         <button id="btnCopyShareText" onclick="copyShareText()"
@@ -832,21 +1049,32 @@
 
                 <!-- 图片分享窗格 -->
                 <div id="shareImgPane" class="space-y-2">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
                         <span class="font-bold text-white flex items-center gap-1.5">
-                            <span class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-[11px]">🖼️</span>
+                            <span
+                                class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-[11px]">🖼️</span>
                             竖版分享卡
                         </span>
-                        <a id="btnDownloadSharePng" download="htft-share-card.png"
-                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-[11px] font-bold active:scale-95">
-                            ⬇️ 下载 PNG
-                        </a>
+                        <div class="flex items-center gap-2">
+                            <button id="btnCopyShareImg" onclick="copyShareImage()"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-white border border-cyan-500/30 transition text-[11px] font-bold active:scale-95 shadow-sm">
+                                <span>📋</span>
+                                <span id="copyImgBtnText">复制图片</span>
+                            </button>
+                            <a id="btnDownloadSharePng" download="htft-share-card.png"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 transition text-[11px] font-bold active:scale-95 shadow-sm">
+                                <span>⬇️</span>
+                                <span>下载 PNG</span>
+                            </a>
+                        </div>
                     </div>
                     <div class="flex justify-center bg-slate-950/60 border border-slate-800 rounded-xl p-3">
-                        <canvas id="shareCanvas" width="750" height="1000"
-                            class="share-canvas w-full max-w-[340px] sm:max-w-[380px] h-auto rounded-lg shadow-lg shadow-black/40"></canvas>
+                        <canvas id="shareCanvas" width="750" height="1000" onclick="copyShareImage()"
+                            title="点击可直接复制图片到剪贴板"
+                            class="share-canvas w-full max-w-[340px] sm:max-w-[380px] h-auto rounded-lg shadow-lg shadow-black/40 cursor-pointer hover:ring-2 hover:ring-cyan-500/50 transition"></canvas>
                     </div>
-                    <p class="text-[11px] text-slate-500 leading-relaxed">分享卡由本地 Canvas 生成（不上传任何数据），右键或点击「下载 PNG」保存后发群即可。</p>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">💡 点击上方「复制图片」或直接点击卡片，即可粘贴发微信/群聊；也可点击「下载
+                        PNG」保存至相册。</p>
                 </div>
             </div>
 
@@ -862,8 +1090,10 @@
     </div>
 
     <!-- 我的方案弹窗：localStorage 收藏的测算台方案，支持载入 / 删除 -->
-    <div id="plansModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
-        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl modal-sheet-content">
+    <div id="plansModal"
+        class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
+        <div
+            class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl modal-sheet-content">
             <!-- 移动端底部抽屉把手装饰条 -->
             <div class="md:hidden flex justify-center pt-2.5 pb-1">
                 <div class="w-10 h-1 rounded-full bg-slate-700"></div>
@@ -872,7 +1102,8 @@
             <!-- 弹窗头 -->
             <div class="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
                 <div class="flex items-center space-x-2.5">
-                    <span class="w-8 h-8 rounded-lg bg-violet-500/20 text-violet-300 flex items-center justify-center text-sm font-bold">💾</span>
+                    <span
+                        class="w-8 h-8 rounded-lg bg-violet-500/20 text-violet-300 flex items-center justify-center text-sm font-bold">💾</span>
                     <div>
                         <h3 class="text-base sm:text-lg font-bold text-white">我的方案</h3>
                         <p class="text-[11px] text-slate-500">本地浏览器收藏（最多 10 条）· 数据不上传</p>
@@ -881,7 +1112,8 @@
                 <button onclick="togglePlansModal()" aria-label="关闭我的方案"
                     class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
                     </svg>
                 </button>
             </div>
@@ -898,7 +1130,8 @@
                 <div id="savedPlansList" class="space-y-2">
                     <!-- 由 storage.js renderPlansList() 动态渲染 -->
                 </div>
-                <p class="text-[11px] text-slate-500 leading-relaxed">💡 收藏仅保存在当前浏览器 localStorage，换设备 / 清缓存会丢失；载入会把场次、勾选赛果、配资模式与预算一键恢复到测算台。</p>
+                <p class="text-[11px] text-slate-500 leading-relaxed">💡 收藏仅保存在当前浏览器 localStorage，换设备 /
+                    清缓存会丢失；载入会把场次、勾选赛果、配资模式与预算一键恢复到测算台。</p>
             </div>
 
             <!-- 弹窗脚 -->
@@ -912,10 +1145,307 @@
         </div>
     </div>
 
+    <!-- 比赛深度数据分析弹窗 (直接对接竞彩网官方 uniform 数据) -->
+    <div id="matchAnalysisModal"
+        class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
+        <div
+            class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl modal-sheet-content flex flex-col max-h-[90vh]">
+            <!-- 移动端顶部小把手 -->
+            <div class="md:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+                <div class="w-10 h-1 rounded-full bg-slate-700"></div>
+            </div>
+
+            <!-- 弹窗头部：赛事概况与对阵 -->
+            <div
+                class="p-4 sm:p-5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2.5">
+                    <span
+                        class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-sm font-bold">⚽</span>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h3 class="text-base sm:text-lg font-bold text-white" id="analysisModalTitle">比赛数据分析</h3>
+                            <span id="analysisLeagueBadge"
+                                class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">--</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500" id="analysisMatchTime">开赛时间：--</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="analysisBtnLoadToCalc"
+                        class="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition active:scale-95 shadow-sm">
+                        ⚡ 载入测算台
+                    </button>
+                    <button onclick="closeMatchAnalysisModal()" aria-label="关闭比赛分析"
+                        class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 弹窗主体：可滚动区域 -->
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto text-xs sm:text-sm text-slate-300">
+                <!-- 加载态骨架屏 -->
+                <div id="analysisLoading" class="py-12 flex flex-col items-center justify-center space-y-3">
+                    <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin">
+                    </div>
+                    <span class="text-xs text-slate-400">正在从竞彩网拉取对阵深度数据…</span>
+                </div>
+
+                <!-- 真实内容展示区 (初始 hidden，拉取后显示) -->
+                <div id="analysisContent" class="space-y-4 hidden">
+                    <!-- 对阵双方比分大卡片 -->
+                    <div
+                        class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 flex items-center justify-between text-center relative overflow-hidden">
+                        <!-- 主队 -->
+                        <div class="flex-1 flex flex-col items-center space-y-1.5">
+                            <div
+                                class="w-12 h-12 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center overflow-hidden p-1 shadow-inner">
+                                <img id="analysisHomeLogo" src="" alt="主队" class="w-full h-full object-contain"
+                                    onerror="this.src='https://static.sporttery.cn/res_1_0/jcw/images/fotBasbal_match/icon_zd.png'">
+                            </div>
+                            <div class="font-bold text-white text-sm sm:text-base" id="analysisHomeName">主队</div>
+                            <span id="analysisHomeRank"
+                                class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">排名:
+                                --</span>
+                        </div>
+
+                        <!-- 中间 VS 与胜平负 SP -->
+                        <div class="px-3 shrink-0 flex flex-col items-center space-y-1">
+                            <span class="text-base sm:text-lg font-black text-slate-500 tracking-wider">VS</span>
+                            <div
+                                class="text-[11px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                                胜 <span id="analysisSpH" class="text-amber-400 font-bold">--</span> /
+                                平 <span id="analysisSpD" class="text-amber-400 font-bold">--</span> /
+                                负 <span id="analysisSpA" class="text-amber-400 font-bold">--</span>
+                            </div>
+                            <span id="analysisSingleBadge"
+                                class="text-[10px] px-2 py-0.5 rounded font-semibold">--</span>
+                        </div>
+
+                        <!-- 客队 -->
+                        <div class="flex-1 flex flex-col items-center space-y-1.5">
+                            <div
+                                class="w-12 h-12 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center overflow-hidden p-1 shadow-inner">
+                                <img id="analysisAwayLogo" src="" alt="客队" class="w-full h-full object-contain"
+                                    onerror="this.src='https://static.sporttery.cn/res_1_0/jcw/images/fotBasbal_match/icon_kd.png'">
+                            </div>
+                            <div class="font-bold text-white text-sm sm:text-base" id="analysisAwayName">客队</div>
+                            <span id="analysisAwayRank"
+                                class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">排名:
+                                --</span>
+                        </div>
+                    </div>
+
+                    <!-- 历史交锋 (Head to Head) -->
+                    <div class="bg-slate-900/80 p-3.5 sm:p-4 rounded-xl border border-slate-800 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-white text-xs sm:text-sm flex items-center gap-1.5">
+                                <span>⚔️ 双方交锋往绩</span>
+                                <span id="analysisH2HSummary" class="text-[11px] text-slate-400 font-normal">--</span>
+                            </span>
+                            <span id="analysisH2HCount" class="text-[11px] text-slate-500">近 6 场对决</span>
+                        </div>
+                        <!-- 交锋胜平负比例条 -->
+                        <div id="analysisH2HBar" class="h-2 rounded-full bg-slate-800 overflow-hidden flex">
+                            <div id="analysisH2HBarWin" class="bg-emerald-500 transition-all duration-300"
+                                style="width: 0%"></div>
+                            <div id="analysisH2HBarDraw" class="bg-blue-500 transition-all duration-300"
+                                style="width: 0%"></div>
+                            <div id="analysisH2HBarLoss" class="bg-purple-500 transition-all duration-300"
+                                style="width: 0%"></div>
+                        </div>
+                        <!-- 交锋场次简表 -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-[11px] font-mono">
+                                <thead>
+                                    <tr class="text-slate-500 border-b border-slate-800/80 pb-1">
+                                        <th class="py-1">日期/赛事</th>
+                                        <th class="py-1 text-center">主队</th>
+                                        <th class="py-1 text-center">全场比分</th>
+                                        <th class="py-1 text-center">(半场)</th>
+                                        <th class="py-1 text-center">客队</th>
+                                        <th class="py-1 text-right">赛果</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analysisH2HTableBody" class="divide-y divide-slate-800/40">
+                                    <!-- JS 渲染 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 近期战绩对比 (Recent Form) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- 主队近期 -->
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="font-bold text-emerald-400" id="analysisHomeRecentTitle">主队近况</span>
+                                <span class="text-[10px] text-slate-400" id="analysisHomeWinRate">--</span>
+                            </div>
+                            <div id="analysisHomeRecentStats"
+                                class="text-[11px] text-slate-400 flex items-center justify-between bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 font-mono">
+                                <span>--</span>
+                            </div>
+                            <div id="analysisHomeRecentList" class="space-y-1 text-[11px] font-mono">
+                                <!-- JS 渲染 -->
+                            </div>
+                        </div>
+
+                        <!-- 客队近期 -->
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="font-bold text-purple-400" id="analysisAwayRecentTitle">客队近况</span>
+                                <span class="text-[10px] text-slate-400" id="analysisAwayWinRate">--</span>
+                            </div>
+                            <div id="analysisAwayRecentStats"
+                                class="text-[11px] text-slate-400 flex items-center justify-between bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 font-mono">
+                                <span>--</span>
+                            </div>
+                            <div id="analysisAwayRecentList" class="space-y-1 text-[11px] font-mono">
+                                <!-- JS 渲染 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 失败/离线兜底态 -->
+                <div id="analysisError" class="hidden py-8 text-center space-y-2">
+                    <div class="text-3xl">⚠️</div>
+                    <div class="text-sm font-semibold text-amber-400">未能从竞彩网实时获取该场深度分析</div>
+                    <p class="text-xs text-slate-500">接口暂未提供或当前处于离线模式，可直接在测算台研究赔率组合或访问官方页面查看。</p>
+                </div>
+            </div>
+
+            <!-- 弹窗底部操作条 -->
+            <div
+                class="p-3 sm:p-4 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between gap-2 shrink-0">
+                <a id="analysisOfficialLink" href="https://www.sporttery.cn/jc/zqdz/" target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition">
+                    <span>🔗 查看竞彩网官方对阵详情</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+                <div class="flex items-center space-x-2">
+                    <button onclick="closeMatchAnalysisModal()"
+                        class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition active:scale-95">
+                        关闭
+                    </button>
+                    <button id="analysisBtnLoadToCalcMobile"
+                        class="sm:hidden px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition active:scale-95 shadow-sm">
+                        ⚡ 载入测算
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 请我喝杯咖啡 赞赏弹窗 -->
+    <div id="donateModal"
+        class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 modal-sheet-container">
+        <div
+            class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-sm sm:max-w-md overflow-hidden shadow-2xl modal-sheet-content relative flex flex-col">
+
+            <!-- 弹窗顶栏 -->
+            <div
+                class="p-4 sm:p-5 bg-gradient-to-b from-slate-800/80 to-slate-900/90 border-b border-slate-700/60 relative flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div
+                        class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg shadow-inner text-amber-300">
+                        ☕
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
+                            请我喝杯咖啡
+                            <span
+                                class="text-[10px] font-normal px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">赞赏支持</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-400">开源不易 · 感谢每一份鼓励与支持</p>
+                    </div>
+                </div>
+                <button onclick="closeDonateModal()" aria-label="关闭赞赏弹窗"
+                    class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition active:scale-90">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 弹窗主体 -->
+            <div class="p-4 sm:p-6 space-y-4 text-center">
+                <!-- 走心文案提示框 -->
+                <div
+                    class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 text-xs text-slate-300 leading-relaxed shadow-inner">
+                    开源不易，如果本项目对您有所帮助，<br class="hidden sm:inline">不妨请我喝杯咖啡～ ☕
+                </div>
+
+                <!-- 渠道切换 Tab 栏 -->
+                <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-800 gap-1.5">
+                    <button id="donateTabWechat" onclick="switchDonateChannel('wechat')"
+                        class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all bg-[#07C160]/15 text-[#07C160] border border-[#07C160]/40 shadow-sm cursor-pointer active:scale-95">
+                        <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                            <path
+                                d="M8.5 2C4.36 2 1 4.91 1 8.5c0 2.01 1.05 3.82 2.7 5.03l-.68 2.05a.5.5 0 0 0 .66.62l2.45-1.12c.74.27 1.54.42 2.37.42.3 0 .59-.02.88-.06A6.9 6.9 0 0 1 8.5 12c0-3.87 3.58-7 8-7 .5 0 .99.04 1.46.12C16.59 3.25 12.82 2 8.5 2zm-2.25 4.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zm4.5 0a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zm5.75 2.5c-3.73 0-6.75 2.57-6.75 5.75 0 1.67.83 3.19 2.19 4.22l-.56 1.7a.5.5 0 0 0 .66.62l2.04-.93c.77.26 1.6.4 2.42.4 3.73 0 6.75-2.57 6.75-5.75S20.23 9 16.5 9zm-2.25 3.75a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm4.5 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                        </svg>
+                        <span>微信支付</span>
+                    </button>
+                    <button id="donateTabAlipay" onclick="switchDonateChannel('alipay')"
+                        class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 border border-transparent cursor-pointer active:scale-95">
+                        <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                            <path
+                                d="M21.5 2h-19C1.67 2 1 2.67 1 3.5v17c0 .83.67 1.5 1.5 1.5h19c.83 0 1.5-.67 1.5-1.5v-17c0-.83-.67-1.5-1.5-1.5zm-5.88 12.67c-1.25 2.15-3.04 3.86-5.26 5.06-1.57.85-3.48 1.27-5.36 1.27v-1.78c1.55 0 3.11-.36 4.41-1.07 1.83-.99 3.32-2.42 4.37-4.2H8.38c-.37 0-.68-.27-.74-.63L7.17 11.5h6.61V9.22H6.94c-.41 0-.75-.34-.75-.75v-.44c0-.41.34-.75.75-.75h6.84V5.42c0-.41.34-.75.75-.75h1.22c.41 0 .75.34.75.75v1.86h5.35c.41 0 .75.34.75.75v.44c0 .41-.34.75-.75.75h-5.35v2.28h5.13c.41 0 .75.34.75.75v.26c0 .41-.34.75-.75.75h-2.14c-.38 2.05-1.48 3.96-3.07 5.43z" />
+                        </svg>
+                        <span>支付宝</span>
+                    </button>
+                </div>
+
+                <!-- 二维码容器 -->
+                <!-- 微信支付二维码卡片 -->
+                <div id="donateCardWechat" class="transition-all duration-200">
+                    <div class="bg-white p-3.5 rounded-2xl shadow-xl inline-block border-2 border-[#07C160]/30 mx-auto">
+                        <img src="img/wechat_qr.png" alt="微信收款码"
+                            class="w-48 h-48 sm:w-52 sm:h-52 object-contain block mx-auto rounded-lg">
+                    </div>
+                    <div class="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-300 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-[#07C160] animate-pulse"></span>
+                        <span>使用微信扫一扫</span>
+                    </div>
+                </div>
+
+                <!-- 支付宝二维码卡片 -->
+                <div id="donateCardAlipay" class="hidden transition-all duration-200">
+                    <div class="bg-white p-3.5 rounded-2xl shadow-xl inline-block border-2 border-[#1677FF]/30 mx-auto">
+                        <img src="img/alipay_qr.png" alt="支付宝收款码"
+                            class="w-48 h-48 sm:w-52 sm:h-52 object-contain block mx-auto rounded-lg">
+                    </div>
+                    <div class="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-300 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-[#1677FF] animate-pulse"></span>
+                        <span>使用支付宝扫一扫</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 弹窗底栏 -->
+            <div
+                class="p-3.5 bg-slate-950/70 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 px-4 sm:px-5">
+                <span>感谢您的认可与持续支持 ❤️</span>
+                <button onclick="closeDonateModal()"
+                    class="px-3.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition active:scale-95 text-xs">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 底部版权与免责声明 -->
     <footer class="mt-auto border-t border-white/5 py-4 text-center text-xs text-slate-500 px-4">
         <p>本项目为开源数字策略研究工具，仅供数学概率交流与编程学习研判，严禁用于任何非法博彩活动。</p>
-        <p class="text-[11px] text-slate-600 mt-1">中国体育彩票官方实时 API 直连 · 纯静态 WebApp · 完美适配 GitHub Pages</p>
     </footer>
 
     <!-- 模块化脚本加载 -->
