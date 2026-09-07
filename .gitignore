@@ -17,4 +17,9 @@ node_modules/
 .vscode/
 *.swp
 .DS_Store
-Thumbs.db
+# Binaries
+*.exe
+*.msi
+
+# Rust / Tauri
+src-tauri/target/

@@ -122,7 +122,8 @@ ht-ft-calculator/
 │   └── workflows/
 │       └── build-exe.yml   # GitHub Actions 自动化编译打包 Windows x64/x86 客户端
 ├── index.html              # 核心应用：纯前端界面 (HTML5 + Tailwind + 原生 JS)
-├── main.js                 # Electron 桌面客户端原生窗口入口
+├── src-tauri/              # Tauri 极简轻量桌面客户端 (WebView2 引擎，~3MB)
+├── main.js                 # Electron 本地预览窗口入口 (备用)
 ├── css/
 │   └── style.css           # 自定义样式（覆盖/补充 Tailwind）
 ├── js/

@@ -7,6 +7,8 @@
     "start": "electron .",
     "serve": "npx serve .",
     "dev": "npx serve .",
+    "tauri": "tauri",
+    "build:tauri": "tauri build",
     "dist:win": "electron-builder --win --x64 --ia32",
     "build:win": "electron-builder --win --x64 --ia32"
   },
@@ -40,6 +42,7 @@
     ]
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
     "electron": "^28.2.0",
     "electron-builder": "^24.9.1"
   },
