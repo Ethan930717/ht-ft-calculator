@@ -7,8 +7,9 @@
     "start": "electron .",
     "serve": "npx serve .",
     "dev": "npx serve .",
+    "prepare:web": "node scripts/prepare-web.js",
     "tauri": "tauri",
-    "build:tauri": "tauri build",
+    "build:tauri": "node scripts/prepare-web.js && tauri build",
     "dist:win": "electron-builder --win --x64 --ia32",
     "build:win": "electron-builder --win --x64 --ia32"
   },

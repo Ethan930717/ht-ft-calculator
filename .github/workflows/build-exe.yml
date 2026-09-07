@@ -43,6 +43,9 @@ jobs:
       - name: 安装项目依赖
         run: npm install
 
+      - name: 准备前端独立发布资源
+        run: node scripts/prepare-web.js
+
       - name: 执行 Tauri 发布编译 (生成安装包与可执行程序)
         run: npx tauri build
 

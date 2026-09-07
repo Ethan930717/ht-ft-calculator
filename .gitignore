@@ -5,6 +5,7 @@ __pycache__/
 *.spec
 build/
 dist/
+dist-web/
 venv/
 .env
 

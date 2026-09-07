@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "identifier": "com.dahu.htftcalc",
   "build": {
-    "frontendDist": "../"
+    "beforeBuildCommand": "node scripts/prepare-web.js",
+    "frontendDist": "../dist-web"
   },
   "app": {
     "windows": [
